@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.env
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Database
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Dependency files
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Others
+.DS_Store
+Thumbs.db
