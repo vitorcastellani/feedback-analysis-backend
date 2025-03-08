@@ -1,6 +1,4 @@
-import pytest
 from model.feedback import Feedback
-from tests import db_session, client, test_session, app
 
 def test_create_feedback(client, db_session):
     """Test creating a new feedback entry."""
