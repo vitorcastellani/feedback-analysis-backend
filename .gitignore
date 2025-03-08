@@ -14,7 +14,7 @@ venv/
 *.sublime-workspace
 
 # Database
-*.sqlite3
+*.sqlite
 
 # Logs
 logs/
