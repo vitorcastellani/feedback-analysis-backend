@@ -7,6 +7,7 @@ def test_create_feedback(client, db_session):
     data = response.get_json()
     assert "id" in data
     assert data["message"] == "Great service!"
+    assert data["created_at"] is not None
 
 def test_get_feedbacks(client):
     """Test retrieving all feedback entries with pagination."""
@@ -27,6 +28,7 @@ def test_get_feedback_by_id(client, db_session):
     data = response.get_json()
     assert data["id"] == feedback.id
     assert data["message"] == "Test feedback"
+    assert data["created_at"] is not None
 
 def test_delete_feedback(client, db_session):
     """Test deleting a feedback entry by ID."""
