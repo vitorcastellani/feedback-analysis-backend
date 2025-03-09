@@ -2,8 +2,8 @@ import pytest
 from flask import Flask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from routes.feedback import feedback_bp
-from config.db import Base, DB_URL
+from routes import feedback_bp, feedback_analysis_bp
+from config import BaseModel, DB_URL, SessionLocal
 
 # Define the database file path
 TEST_DB_FILE = DB_URL.replace("sqlite:///", "")
@@ -18,7 +18,7 @@ TestingSessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=Fa
 def setup_database():
     """Ensures a clean test database before the test session starts."""
     # Create a fresh database
-    Base.metadata.create_all(bind=test_engine)
+    BaseModel.metadata.create_all(bind=test_engine)
 
     # Runs all tests
     yield
@@ -34,8 +34,8 @@ def db_session(setup_database):
     """Creates a new database session and resets the database before each test."""
     
     # Drop and recreate all tables before each test
-    Base.metadata.drop_all(bind=test_engine)
-    Base.metadata.create_all(bind=test_engine)
+    BaseModel.metadata.drop_all(bind=test_engine)
+    BaseModel.metadata.create_all(bind=test_engine)
 
     # Provide the test session to the test
     session = TestingSessionLocal()
@@ -50,7 +50,8 @@ def db_session(setup_database):
 def app():
     """Creates a Flask test app using the test database session."""
     app = Flask(__name__)
-    app.register_blueprint(feedback_bp)
+    app.register_blueprint(feedback_bp, url_prefix="/api")
+    app.register_blueprint(feedback_analysis_bp, url_prefix="/api")
     app.config["TESTING"] = True
     return app
 

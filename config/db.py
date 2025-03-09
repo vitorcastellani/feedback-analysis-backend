@@ -3,7 +3,7 @@ import sys
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
-from model.base import Base
+from model import BaseModel
 
 # Load environment variables but DO NOT override existing ones
 load_dotenv(override=False)
@@ -29,4 +29,4 @@ engine = create_engine(DB_URL, echo=False)
 SessionLocal = scoped_session(sessionmaker(bind=engine))
 
 # Ensure all tables are created
-Base.metadata.create_all(engine)
+BaseModel.metadata.create_all(engine)

@@ -6,3 +6,6 @@ sqlalchemy
 sqlalchemy-utils
 python-dotenv
 pytest
+vaderSentiment
+langdetect
+deep_translator

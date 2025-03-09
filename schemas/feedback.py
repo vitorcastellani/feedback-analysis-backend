@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import List
 
 # Feedback Create Schema
 class FeedbackCreate(BaseModel):
@@ -17,7 +16,3 @@ class FeedbackResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-# Feedback List Response Schema
-class FeedbackListResponse(BaseModel):
-    feedbacks: List[FeedbackResponse]

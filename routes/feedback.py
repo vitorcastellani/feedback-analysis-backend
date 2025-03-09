@@ -1,17 +1,18 @@
-from flask_openapi3 import APIBlueprint
+from flask_openapi3 import APIBlueprint, Tag
 from flask import jsonify
 from sqlalchemy.orm import Session
-from config.db import SessionLocal
-from model.feedback import Feedback
-from schemas.feedback import FeedbackCreate, FeedbackResponse, FeedbackListResponse, FeedbackIDParam
-from schemas.pagination import PaginationSchema
-from schemas.list_response import ListResponseSchema
+from config import SessionLocal
+from model import Feedback
+from schemas import FeedbackCreate, FeedbackResponse, FeedbackIDParam, PaginationSchema, ListResponseSchema
+
+# Create a new Tag
+feedback_tag = Tag(name="Feedback", description="Operations related to feedbacks.")
 
 # Create a new Blueprint
-feedback_bp = APIBlueprint('feedback', __name__, url_prefix="/api")
+feedback_bp = APIBlueprint('feedback', __name__)
 
 # Create a new feedback
-@feedback_bp.post("/feedback", responses={201: FeedbackResponse})
+@feedback_bp.post("/feedback", responses={201: FeedbackResponse}, tags=[feedback_tag])
 def create_feedback(body: FeedbackCreate):
     """Create a new feedback"""
     db: Session = SessionLocal()
@@ -23,7 +24,7 @@ def create_feedback(body: FeedbackCreate):
     return FeedbackResponse.model_validate(new_feedback).model_dump(), 201
 
 # List all feedbacks
-@feedback_bp.get("/feedbacks", responses={200: ListResponseSchema[FeedbackResponse]})
+@feedback_bp.get("/feedbacks", responses={200: ListResponseSchema[FeedbackResponse]}, tags=[feedback_tag])
 def get_feedbacks(query: PaginationSchema):
     """List all feedbacks with pagination"""
     db: Session = SessionLocal()
@@ -38,7 +39,7 @@ def get_feedbacks(query: PaginationSchema):
     return jsonify(response.model_dump()), 200
 
 # Get a feedback by ID
-@feedback_bp.get("/feedback/<int:feedback_id>", responses={200: FeedbackResponse, 404: {"message": "Feedback not found"}})
+@feedback_bp.get("/feedback/<int:feedback_id>", responses={200: FeedbackResponse, 404: {"message": "Feedback not found"}}, tags=[feedback_tag])
 def get_feedback(path: FeedbackIDParam):
     """Get a feedback by ID"""
     db: Session = SessionLocal()
@@ -49,7 +50,7 @@ def get_feedback(path: FeedbackIDParam):
     return jsonify({"message": "Feedback not found"}), 404
 
 # Delete a feedback by ID
-@feedback_bp.delete("/feedback/<int:feedback_id>", responses={200: {"message": "Feedback removido"}, 404: {"message": "Feedback not found"}})
+@feedback_bp.delete("/feedback/<int:feedback_id>", responses={200: {"message": "Feedback removido"}, 404: {"message": "Feedback not found"}}, tags=[feedback_tag])
 def delete_feedback(path: FeedbackIDParam):
     """Delete a feedback by ID"""
     db: Session = SessionLocal()

@@ -1,4 +1,4 @@
-from model.feedback import Feedback
+from model import Feedback
 
 def test_create_feedback(client, db_session):
     """Test creating a new feedback entry."""
