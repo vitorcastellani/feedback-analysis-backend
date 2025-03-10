@@ -2,8 +2,7 @@ from flask import redirect
 from flask_cors import CORS
 from flask_openapi3 import OpenAPI, Info
 from config import engine, BaseModel
-from routes.feedback import feedback_bp
-from routes.feedback_analysis import feedback_analysis_bp
+from routes import feedback_bp, feedback_analysis_bp, campaign_bp
 
 # Swagger Info
 info = Info(title="Feedback API", version="1.0.0", description="Feedback API for Collecting User Feedback and Analyzing Sentiments")
@@ -18,6 +17,7 @@ CORS(app)
 BaseModel.metadata.create_all(bind=engine)
 
 # Register the Blueprint with OpenAPI
+app.register_api(campaign_bp, url_prefix="/api")
 app.register_api(feedback_bp, url_prefix="/api")
 app.register_api(feedback_analysis_bp, url_prefix="/api")
 

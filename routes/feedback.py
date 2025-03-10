@@ -16,7 +16,7 @@ feedback_bp = APIBlueprint('feedback', __name__)
 def create_feedback(body: FeedbackCreate):
     """Create a new feedback"""
     db: Session = SessionLocal()
-    new_feedback = Feedback(message=body.message)
+    new_feedback = Feedback(campaign_id=body.campaign_id, message=body.message)
     db.add(new_feedback)
     db.commit()
     db.refresh(new_feedback)

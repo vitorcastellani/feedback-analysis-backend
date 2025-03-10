@@ -1,10 +1,15 @@
-from model import Feedback, SentimentCategory
+from model import Feedback, SentimentCategory, Campaign
 
 def test_analyze_feedback_success(client, db_session):
     """Test sentiment analysis for an existing feedback."""
     
-    # Create a feedback entry
-    feedback = Feedback(message="Amei a música, foi incrível!")
+    # Create a campaign entry
+    campaign = Campaign(name="Analysis Campaign", description="Campaign for feedback analysis test")
+    db_session.add(campaign)
+    db_session.commit()
+    
+    # Create a feedback entry linked to the campaign
+    feedback = Feedback(message="Amei a música, foi incrível!", campaign_id=campaign.id)
     db_session.add(feedback)
     db_session.commit()
 
@@ -30,8 +35,13 @@ def test_analyze_feedback_success(client, db_session):
 def test_analyze_feedback_already_exists(client, db_session):
     """Test that analyzing the same feedback again returns the existing result."""
     
-    # Create a feedback entry
-    feedback = Feedback(message="Muito ruim, odiei essa experiência.")
+    # Create a campaign entry
+    campaign = Campaign(name="Duplicate Analysis Campaign", description="Campaign for duplicate analysis test")
+    db_session.add(campaign)
+    db_session.commit()
+    
+    # Create a feedback entry linked to the campaign
+    feedback = Feedback(message="Muito ruim, odiei essa experiência.", campaign_id=campaign.id)
     db_session.add(feedback)
     db_session.commit()
 
