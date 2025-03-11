@@ -22,6 +22,8 @@ The API provides functionalities to:
 - Perform sentiment analysis using Natural Language Processing (NLP).
 - Store the sentiment analysis results.
 - Utilize SQLite as the database for easy deployment and testing.
+- Create feedback campaigns with configurable settings (allowing or disallowing multiple feedback submissions from the same IP, defining a maximum number of feedback entries, and setting the campaign as active or inactive).
+- Track feedback submissions by IP address and User Agent.
 
 ## 🚀 How to Run the Project
 ### 1️⃣ Clone the Repository
