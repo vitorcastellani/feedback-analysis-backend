@@ -4,7 +4,7 @@ def test_analyze_feedback_success(client, db_session):
     """Test sentiment analysis for an existing feedback."""
     
     # Create a campaign entry
-    campaign = Campaign(name="Analysis Campaign", description="Campaign for feedback analysis test")
+    campaign = Campaign(name="Analysis Campaign", description="Campaign for feedback analysis test", short_code="TEST")
     db_session.add(campaign)
     db_session.commit()
     
@@ -36,7 +36,7 @@ def test_analyze_feedback_already_exists(client, db_session):
     """Test that analyzing the same feedback again returns the existing result."""
     
     # Create a campaign entry
-    campaign = Campaign(name="Duplicate Analysis Campaign", description="Campaign for duplicate analysis test")
+    campaign = Campaign(name="Duplicate Analysis Campaign", description="Campaign for duplicate analysis test", short_code="TEST")
     db_session.add(campaign)
     db_session.commit()
     

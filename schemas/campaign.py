@@ -5,12 +5,19 @@ from datetime import datetime
 class CampaignCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=255)
     description: str | None = None
+    active: bool = True
+    multiple_answers_from_user: bool = True
+    max_answers: int = 0
 
 # Campaign Response Schema
 class CampaignResponse(BaseModel):
     id: int
     name: str
     description: str | None
+    active: bool
+    multiple_answers_from_user: bool
+    max_answers: int
+    short_code: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

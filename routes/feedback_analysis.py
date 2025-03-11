@@ -21,26 +21,23 @@ analyzer = SentimentIntensityAnalyzer()
 # Ensure deterministic results for langdetect
 DetectorFactory.seed = 0
 
+# Detect language with fallback to Portuguese
 def detect_language(text: str) -> str:
     """Tries to detect the language, but assumes Portuguese if detection is unreliable."""
     try:
         detected_lang = detect(text)
-        if detected_lang not in ["en", "pt", "es", "fr", "de"]:
-            return "pt"
-        return detected_lang
+        return detected_lang if detected_lang in ["en", "pt", "es", "fr", "de"] else "pt"
     except:
         return "pt"
 
+# Analyze sentiment of a text
 def analyze_sentiment(text: str):
     """Detects language, translates if needed, and applies sentiment analysis."""
 
     feedback_length = len(text)
     word_count = len(text.split())
 
-    try:
-        lang = detect(text)
-    except:
-        lang = "pt"
+    lang = detect_language(text)
 
     if lang != "en":
         text = GoogleTranslator(source=lang, target="en").translate(text)
@@ -82,52 +79,44 @@ def analyze_sentiment(text: str):
 
     return final_compound, sentiment_category, lang, word_count, feedback_length
 
+# Convert sentiment score to star rating
 def get_star_rating(sentiment_score: float) -> int:
     """Converts sentiment score (-1 to 1) into a 1-5 star rating with better scaling."""
-    
-    if sentiment_score >= 0.7:
-        return 5
-    elif sentiment_score <= -0.6:
-        return 1
-    else:
-        return round((sentiment_score + 1) * 2.5)
+    return 5 if sentiment_score >= 0.7 else 1 if sentiment_score <= -0.6 else round((sentiment_score + 1) * 2.5)
 
 @feedback_analysis_bp.post("/feedback/analyze", responses={201: FeedbackAnalysisResponse, 404: {"message": "Feedback not found"}}, tags=[feedback_analysis_tag])
 def analyze_feedback(body: FeedbackAnalysisCreate):
     """Analyze sentiment of a feedback message in multiple languages and store it."""
 
-    db: Session = SessionLocal()
-    feedback = db.query(Feedback).filter(Feedback.id == body.feedback_id).first()
+    with SessionLocal() as db:
+        feedback = db.query(Feedback).filter(Feedback.id == body.feedback_id).first()
 
-    if not feedback:
-        db.close()
-        return jsonify({"message": "Feedback not found"}), 404
+        if not feedback:
+            return jsonify({"message": "Feedback not found"}), 404
 
-    # Check if already analyzed
-    existing_analysis = db.query(FeedbackAnalysis).filter(FeedbackAnalysis.feedback_id == body.feedback_id).first()
-    if existing_analysis:
-        db.close()
-        return jsonify(FeedbackAnalysisResponse.model_validate(existing_analysis.__dict__).model_dump()), 200
+        # Check if already analyzed
+        existing_analysis = db.query(FeedbackAnalysis).filter(FeedbackAnalysis.feedback_id == body.feedback_id).first()
+        if existing_analysis:
+            return jsonify(FeedbackAnalysisResponse.model_validate(existing_analysis.__dict__).model_dump()), 200
 
-    # Perform sentiment analysis
-    sentiment_score, sentiment_category, detected_language, word_count, feedback_length = analyze_sentiment(feedback.message)
-    star_rating = get_star_rating(sentiment_score)
+        # Perform sentiment analysis
+        sentiment_score, sentiment_category, detected_language, word_count, feedback_length = analyze_sentiment(feedback.message)
+        star_rating = get_star_rating(sentiment_score)
 
-    new_analysis = FeedbackAnalysis(
-        feedback_id=body.feedback_id,
-        sentiment=sentiment_score,
-        sentiment_category=sentiment_category,
-        star_rating=star_rating,
-        detected_language=detected_language,
-        word_count=word_count,
-        feedback_length=feedback_length
-    )
-    
-    db.add(new_analysis)
-    db.commit()
-    db.refresh(new_analysis)
+        new_analysis = FeedbackAnalysis(
+            feedback_id=body.feedback_id,
+            sentiment=sentiment_score,
+            sentiment_category=sentiment_category,
+            star_rating=star_rating,
+            detected_language=detected_language,
+            word_count=word_count,
+            feedback_length=feedback_length
+        )
+        
+        db.add(new_analysis)
+        db.commit()
+        db.refresh(new_analysis)
 
-    response = FeedbackAnalysisResponse.model_validate(new_analysis.__dict__).model_dump()
+        response = FeedbackAnalysisResponse.model_validate(new_analysis.__dict__).model_dump()
 
-    db.close()
-    return jsonify(response), 201
+        return jsonify(response), 201
