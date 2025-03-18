@@ -18,6 +18,7 @@ class CampaignResponse(BaseModel):
     multiple_answers_from_user: bool
     max_answers: int
     short_code: str
+    feedback_count: int = 0
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -25,3 +26,7 @@ class CampaignResponse(BaseModel):
 # Campaign ID Param Schema
 class CampaignIDParam(BaseModel):
     campaign_id: int
+
+# Campaign Short Code Param Schema
+class CampaignShortCodeParam(BaseModel):
+    short_code: str

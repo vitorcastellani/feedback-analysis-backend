@@ -80,6 +80,33 @@ def test_get_campaign_by_id(client, db_session):
     assert data["multiple_answers_from_user"] is True
     assert data["max_answers"] == 10
     assert data["short_code"] == "TEST"
+    assert data["feedback_count"] == 0
+    assert data["created_at"] is not None
+
+def test_get_campaign_by_short_code(client, db_session):
+    """Test retrieving a single campaign entry by short code."""
+    campaign = Campaign(
+        name="Short Code Test",
+        description="Testing get campaign by short code",
+        active=True,
+        multiple_answers_from_user=True,
+        max_answers=10,
+        short_code="TEST"
+    )
+    db_session.add(campaign)
+    db_session.commit()
+    
+    response = client.get(f"/api/campaign/short_code/{campaign.short_code}")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["id"] == campaign.id
+    assert data["name"] == "Short Code Test"
+    assert data["description"] == "Testing get campaign by short code"
+    assert data["active"] is True
+    assert data["multiple_answers_from_user"] is True
+    assert data["max_answers"] == 10
+    assert data["short_code"] == "TEST"
+    assert data["feedback_count"] == 0
     assert data["created_at"] is not None
 
 def test_delete_campaign(client, db_session):

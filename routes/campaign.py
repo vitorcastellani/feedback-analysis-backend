@@ -4,8 +4,8 @@ import random
 import string
 from sqlalchemy.orm import Session
 from config import SessionLocal
-from model import Campaign
-from schemas import CampaignResponse, CampaignIDParam, PaginationSchema, ListResponseSchema, CampaignCreate
+from model import Campaign, Feedback
+from schemas import CampaignResponse, CampaignIDParam, PaginationSchema, ListResponseSchema, CampaignCreate, CampaignShortCodeParam
 
 # Create a new Tag
 campaign_tag = Tag(name="Campaign", description="Operations related to campaigns.")
@@ -39,15 +39,18 @@ def create_campaign(body: CampaignCreate):
 # List all campaigns
 @campaign_bp.get("/campaigns", responses={200: ListResponseSchema[CampaignResponse]}, tags=[campaign_tag])
 def get_campaigns(query: PaginationSchema):
-    """List all campaigns with pagination"""
+    """List all campaigns"""
     with SessionLocal() as db:
-        total = db.query(Campaign).count()
         campaigns = db.query(Campaign).offset(query.offset).limit(query.limit).all()
-        response = ListResponseSchema(
-            total=total,
-            items=[CampaignResponse.model_validate(c) for c in campaigns]
-        )
-        return jsonify(response.model_dump()), 200
+        items = []
+        for campaign in campaigns:
+            feedback_count = db.query(Feedback).filter(Feedback.campaign_id == campaign.id).count()
+            campaign_data = CampaignResponse.model_validate({
+                **campaign.__dict__,
+                "feedback_count": feedback_count
+            }).model_dump()
+            items.append(campaign_data)
+        return jsonify({"items": items, "total": len(items)})
 
 # Get a campaign by ID
 @campaign_bp.get("/campaign/<int:campaign_id>", responses={200: CampaignResponse, 404: {"message": "Campaign not found"}}, tags=[campaign_tag])
@@ -56,6 +59,20 @@ def get_campaign(path: CampaignIDParam):
     with SessionLocal() as db:
         campaign = db.query(Campaign).filter(Campaign.id == path.campaign_id).first()
         if campaign:
+            feedback_count = db.query(Feedback).filter(Feedback.campaign_id == campaign.id).count()
+            campaign = {**campaign.__dict__, "feedback_count": feedback_count}
+            return jsonify(CampaignResponse.model_validate(campaign).model_dump()), 200
+        return jsonify({"message": "Campaign not found"}), 404
+
+# Get a campaign by short_code
+@campaign_bp.get("/campaign/short_code/<string:short_code>", responses={200: CampaignResponse, 404: {"message": "Campaign not found"}}, tags=[campaign_tag])
+def get_campaign_by_short_code(path: CampaignShortCodeParam):
+    """Get a campaign by short_code"""
+    with SessionLocal() as db:
+        campaign = db.query(Campaign).filter(Campaign.short_code == path.short_code).first()
+        if campaign:
+            feedback_count = db.query(Feedback).filter(Feedback.campaign_id == campaign.id).count()
+            campaign = {**campaign.__dict__, "feedback_count": feedback_count}
             return jsonify(CampaignResponse.model_validate(campaign).model_dump()), 200
         return jsonify({"message": "Campaign not found"}), 404
 
