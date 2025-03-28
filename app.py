@@ -2,7 +2,7 @@ from flask import redirect
 from flask_cors import CORS
 from flask_openapi3 import OpenAPI, Info
 from config import engine, BaseModel
-from routes import feedback_bp, feedback_analysis_bp, campaign_bp
+from routes import feedback_bp, feedback_analysis_bp, campaign_bp, dashboard_bp
 
 # Swagger Info
 info = Info(title="Feedback API", version="1.0.0", description="Feedback API for Collecting User Feedback and Analyzing Sentiments")
@@ -20,6 +20,7 @@ BaseModel.metadata.create_all(bind=engine)
 app.register_api(campaign_bp, url_prefix="/api")
 app.register_api(feedback_bp, url_prefix="/api")
 app.register_api(feedback_analysis_bp, url_prefix="/api")
+app.register_api(dashboard_bp, url_prefix="/api")
 
 # Root route to redirect to the OpenAPI documentation
 @app.route("/")

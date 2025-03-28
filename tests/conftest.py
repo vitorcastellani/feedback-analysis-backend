@@ -2,7 +2,7 @@ import pytest
 from flask import Flask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from routes import feedback_bp, feedback_analysis_bp, campaign_bp
+from routes import feedback_bp, feedback_analysis_bp, campaign_bp, dashboard_bp
 from config import BaseModel, DB_URL, SessionLocal
 
 # Define the database file path
@@ -53,6 +53,7 @@ def app():
     app.register_blueprint(campaign_bp, url_prefix="/api")
     app.register_blueprint(feedback_bp, url_prefix="/api")
     app.register_blueprint(feedback_analysis_bp, url_prefix="/api")
+    app.register_blueprint(dashboard_bp, url_prefix="/api")
     app.config["TESTING"] = True
     return app
 

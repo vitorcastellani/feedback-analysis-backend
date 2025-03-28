@@ -7,7 +7,7 @@ class FeedbackAnalysis(BaseModel):
     __tablename__ = "feedback_analysis"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    feedback_id = Column(Integer, ForeignKey("feedbacks.id"), unique=True, nullable=False)
+    feedback_id = Column(Integer, ForeignKey("feedbacks.id", ondelete="CASCADE"), unique=True, nullable=False)
     detected_language = Column(String(5), nullable=False)
     word_count = Column(Integer, nullable=False)
     feedback_length = Column(Integer, nullable=False)

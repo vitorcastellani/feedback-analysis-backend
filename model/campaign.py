@@ -14,7 +14,7 @@ class Campaign(BaseModel):
     max_answers = Column(Integer, default=0)
     short_code = Column(String, nullable=False, unique=True)
     
-    feedbacks = relationship('Feedback', back_populates='campaign')
+    feedbacks = relationship('Feedback', back_populates='campaign', cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Campaign {self.id}: {self.name}>"
