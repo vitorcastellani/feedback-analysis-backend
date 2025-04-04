@@ -15,6 +15,11 @@ class Campaign(BaseModel):
     short_code = Column(String, nullable=False, unique=True)
     
     feedbacks = relationship('Feedback', back_populates='campaign', cascade="all, delete-orphan")
+    dashboards = relationship(
+        "Dashboard",
+        secondary="dashboard_campaign",
+        back_populates="campaigns"
+    )
     
     def __repr__(self):
         return f"<Campaign {self.id}: {self.name}>"

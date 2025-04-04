@@ -31,11 +31,9 @@ def test_create_feedback_max_answers_exceeded(client, db_session):
     db_session.add(campaign)
     db_session.commit()
 
-    # Primeira inserção deve funcionar
     first_response = client.post("/api/feedback", json={"message": "First answer", "campaign_id": campaign.id})
     assert first_response.status_code == 201
 
-    # Segunda inserção deve falhar
     second_response = client.post("/api/feedback", json={"message": "Second answer", "campaign_id": campaign.id})
     assert second_response.status_code == 400
     data = second_response.get_json()
@@ -47,11 +45,9 @@ def test_create_feedback_multiple_answers_not_allowed(client, db_session):
     db_session.add(campaign)
     db_session.commit()
 
-    # Primeiro feedback deve funcionar
     first_response = client.post("/api/feedback", json={"message": "First feedback", "campaign_id": campaign.id})
     assert first_response.status_code == 201
 
-    # Segundo feedback (mesmo IP) deve falhar
     second_response = client.post("/api/feedback", json={"message": "Second feedback", "campaign_id": campaign.id})
     assert second_response.status_code == 400
     data = second_response.get_json()

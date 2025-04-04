@@ -3,7 +3,7 @@ from flask import Flask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from routes import feedback_bp, feedback_analysis_bp, campaign_bp, dashboard_bp
-from config import BaseModel, DB_URL, SessionLocal
+from config import BaseModel, DB_URL
 
 # Define the database file path
 TEST_DB_FILE = DB_URL.replace("sqlite:///", "")
