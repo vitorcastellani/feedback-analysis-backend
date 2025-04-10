@@ -1,108 +1,57 @@
 import re
 from flask_openapi3 import APIBlueprint, Tag
 from flask import jsonify
-from sqlalchemy.orm import Session
-from langdetect import detect, DetectorFactory
-from deep_translator import GoogleTranslator
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from model import Feedback, FeedbackAnalysis, SentimentCategory
-from schemas import FeedbackAnalysisResponse, FeedbackAnalysisCreate
-from config import SessionLocal, SHORT_SENTENCE_BOOST, SHORT_SENTENCE_THRESHOLD, NEUTRAL_PENALTY_THRESHOLD, NEUTRAL_PENALTY_FACTOR
+from model import Feedback, FeedbackAnalysis
+from schemas import FeedbackAnalysisResponse, FeedbackAnalysisCreate, FeedbackCampaignAnalysisRequest, FeedbackProgressResponse
+from config import SessionLocal
+from services import feedback_queue, processing_feedbacks
+from utils import get_star_rating, analyze_sentiment
 
-# Create a new Tag
-feedback_analysis_tag = Tag(name="Feedback Analysis", description="Operations related to feedback sentiment analysis.")
+# Create a new Tag for the API documentation
+feedback_analysis_tag = Tag(
+    name="Feedback Analysis",
+    description="Operations related to feedback sentiment analysis."
+)
 
-# Create a new Blueprint
+# Create a new API Blueprint for feedback analysis routes
 feedback_analysis_bp = APIBlueprint('feedback_analysis', __name__)
 
-# Initialize the sentiment analyzer
-analyzer = SentimentIntensityAnalyzer()
-
-# Ensure deterministic results for langdetect
-DetectorFactory.seed = 0
-
-# Detect language with fallback to Portuguese
-def detect_language(text: str) -> str:
-    """Tries to detect the language, but assumes Portuguese if detection is unreliable."""
-    try:
-        detected_lang = detect(text)
-        return detected_lang if detected_lang in ["en", "pt", "es", "fr", "de"] else "pt"
-    except:
-        return "pt"
-
-# Analyze sentiment of a text
-def analyze_sentiment(text: str):
-    """Detects language, translates if needed, and applies sentiment analysis."""
-
-    feedback_length = len(text)
-    word_count = len(text.split())
-
-    lang = detect_language(text)
-
-    if lang != "en":
-        text = GoogleTranslator(source=lang, target="en").translate(text)
-
-    sentences = re.split(r"[.!?]", text)
-    compound_scores = []
-
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-
-        sentiment = analyzer.polarity_scores(sentence)
-        compound = sentiment["compound"]
-        sentence_word_count = len(sentence.split())
-
-        # Boost short emotional sentences
-        if sentence_word_count <= SHORT_SENTENCE_THRESHOLD:
-            if sentiment["pos"] > 0.5:
-                compound += SHORT_SENTENCE_BOOST
-            elif sentiment["neg"] > 0.5:
-                compound -= SHORT_SENTENCE_BOOST
-
-        # Penalize long texts that are too neutral
-        if sentiment["neu"] > 0.7 and sentence_word_count > NEUTRAL_PENALTY_THRESHOLD:
-            compound -= NEUTRAL_PENALTY_FACTOR
-
-        compound_scores.append(compound)
-
-    final_compound = sum(compound_scores) / len(compound_scores) if compound_scores else 0.0
-
-    # Determine sentiment category
-    if final_compound >= 0.05:
-        sentiment_category = SentimentCategory.POSITIVE.value
-    elif final_compound <= -0.05:
-        sentiment_category = SentimentCategory.NEGATIVE.value
-    else:
-        sentiment_category = SentimentCategory.NEUTRAL.value
-
-    return final_compound, sentiment_category, lang, word_count, feedback_length
-
-# Convert sentiment score to star rating
-def get_star_rating(sentiment_score: float) -> int:
-    """Converts sentiment score (-1 to 1) into a 1-5 star rating with better scaling."""
-    return 5 if sentiment_score >= 0.7 else 1 if sentiment_score <= -0.6 else round((sentiment_score + 1) * 2.5)
-
-@feedback_analysis_bp.post("/feedback/analyze", responses={201: FeedbackAnalysisResponse, 404: {"message": "Feedback not found"}}, tags=[feedback_analysis_tag])
+@feedback_analysis_bp.post(
+    "/feedback/analyze",
+    responses={201: FeedbackAnalysisResponse, 404: {"message": "Feedback not found"}},
+    tags=[feedback_analysis_tag]
+)
 def analyze_feedback(body: FeedbackAnalysisCreate):
-    """Analyze sentiment of a feedback message in multiple languages and store it."""
+    """
+    Analyze the sentiment of a feedback message in multiple languages and store the result.
 
+    Args:
+        body (FeedbackAnalysisCreate): The request body containing the feedback ID.
+
+    Returns:
+        Response: JSON response with the analysis result or an error message.
+    """
     with SessionLocal() as db:
+        # Retrieve the feedback by ID
         feedback = db.query(Feedback).filter(Feedback.id == body.feedback_id).first()
 
         if not feedback:
             return jsonify({"message": "Feedback not found"}), 404
 
-        # Check if already analyzed
-        existing_analysis = db.query(FeedbackAnalysis).filter(FeedbackAnalysis.feedback_id == body.feedback_id).first()
+        # Check if the feedback has already been analyzed
+        existing_analysis = db.query(FeedbackAnalysis).filter(
+            FeedbackAnalysis.feedback_id == body.feedback_id
+        ).first()
         if existing_analysis:
-            return jsonify(FeedbackAnalysisResponse.model_validate(existing_analysis.__dict__).model_dump()), 200
+            return jsonify(
+                FeedbackAnalysisResponse.model_validate(existing_analysis.__dict__).model_dump()
+            ), 200
 
         # Perform sentiment analysis
         sentiment_score, sentiment_category, detected_language, word_count, feedback_length = analyze_sentiment(feedback.message)
         star_rating = get_star_rating(sentiment_score)
 
+        # Create a new FeedbackAnalysis entry
         new_analysis = FeedbackAnalysis(
             feedback_id=body.feedback_id,
             sentiment=sentiment_score,
@@ -117,6 +66,63 @@ def analyze_feedback(body: FeedbackAnalysisCreate):
         db.commit()
         db.refresh(new_analysis)
 
+        # Prepare the response
         response = FeedbackAnalysisResponse.model_validate(new_analysis.__dict__).model_dump()
 
         return jsonify(response), 201
+
+@feedback_analysis_bp.post(
+    "/feedback/analyze-all",
+    responses={200: {"message": "Analysis started"}},
+    tags=[feedback_analysis_tag]
+)
+def analyze_all_feedbacks(body: FeedbackCampaignAnalysisRequest):
+    """
+    Analyze all feedbacks for specific campaigns that have not been analyzed yet.
+
+    Args:
+        body (FeedbackCampaignAnalysisRequest): The request body containing campaign IDs.
+
+    Returns:
+        Response: JSON response indicating the number of feedbacks added to the queue or an error message.
+    """
+    campaign_ids = body.campaign_ids
+    if not campaign_ids:
+        return jsonify({"message": "Campaign IDs are required"}), 400
+
+    with SessionLocal() as db:
+        # Fetch all feedbacks for the given campaigns that do not have an associated analysis
+        feedbacks_to_analyze = (
+            db.query(Feedback)
+            .outerjoin(FeedbackAnalysis)
+            .filter(Feedback.campaign_id.in_(campaign_ids), FeedbackAnalysis.id == None)
+            .all()
+        )
+
+        if not feedbacks_to_analyze:
+            return jsonify({"message": "No feedbacks to analyze for the given campaigns"}), 200
+
+        # Add feedbacks to the processing queue
+        added_to_queue = 0
+        for feedback in feedbacks_to_analyze:
+            if feedback.id not in processing_feedbacks:
+                feedback_queue.put(feedback.id)
+                processing_feedbacks.add(feedback.id)
+                added_to_queue += 1
+
+        return jsonify({"message": f"Added {added_to_queue} feedback(s) to the processing queue"}), 200
+
+@feedback_analysis_bp.get(
+    "/feedback/progress",
+    responses={200: FeedbackProgressResponse},
+    tags=[feedback_analysis_tag]
+)
+def get_feedback_progress():
+    """
+    Get the current progress of the feedback analysis queue.
+
+    Returns:
+        Response: JSON response with the queue size and the number of feedbacks being processed.
+    """
+    queue_size = feedback_queue.qsize()
+    return jsonify({"queue_size": queue_size, "processing": len(processing_feedbacks)}), 200

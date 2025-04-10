@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
+from model.enums import ComponentType
 
 class DashboardMetricsResponse(BaseModel):
     total_campaigns: int
@@ -8,13 +9,6 @@ class DashboardMetricsResponse(BaseModel):
 
 class DashboardIDParam(BaseModel):
     dashboard_id: int
-
-class ComponentSchema(BaseModel):
-    name: str
-    description: Optional[str]
-    active: bool
-    type: str
-    settings: Optional[Dict]
 
 class DashboardCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=255)
@@ -38,3 +32,14 @@ class DashboardResponse(BaseModel):
 class DashboardListResponse(BaseModel):
     total: int
     items: List[DashboardResponse]
+
+class DashboardComponentIDParam(BaseModel):
+    dashboard_id: int
+    component_id: int
+
+class DashboardComponentResponse(BaseModel):
+    id: int
+    name: str
+    type: str
+    settings: Dict
+    data: Dict

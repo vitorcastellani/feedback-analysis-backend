@@ -17,3 +17,10 @@ class FeedbackAnalysisResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
+
+class FeedbackCampaignAnalysisRequest(BaseModel):
+    campaign_ids: list[int]
+
+class FeedbackProgressResponse(BaseModel):
+    queue_size: int
+    processing: int
