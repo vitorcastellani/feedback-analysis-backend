@@ -1,7 +1,5 @@
 # WAVE - Web-based Analysis and Visualization Engine
 
-<img src="wave-project.png" alt="Web-based Analysis and Visualization Engine" width="250">
-
 ![Python](https://img.shields.io/badge/Python-3.12-4)
 ![Flask](https://img.shields.io/badge/Flask-3.1.0-blue.svg)
 ![Flask-CORS](https://img.shields.io/badge/Flask--CORS-5.0.1-blue.svg)
@@ -16,6 +14,9 @@
 ![Deep Translator](https://img.shields.io/badge/Deep--Translator-1.11.4-blue.svg)
 
 ## 📌 Project Overview
+
+<img src="wave-project.png" alt="Web-based Analysis and Visualization Engine" width="200">
+
 The **Feedback Analysis API** is a simple MVP designed to collect, store, and analyze user feedback. This project is part of the **Postgraduate Software Engineering Program at PUC-RIO** and was developed by **Vitor Fernando Castellani**.
 
 The API provides functionalities to:
