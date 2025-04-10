@@ -1,4 +1,6 @@
-# Feedback Analysis API
+# WAVE - Web-based Analysis and Visualization Engine
+
+<img src="static/images/wave-project.png" alt="Web-based Analysis and Visualization Engine" width="250">
 
 ![Python](https://img.shields.io/badge/Python-3.12-4)
 ![Flask](https://img.shields.io/badge/Flask-3.1.0-blue.svg)
@@ -17,13 +19,27 @@
 The **Feedback Analysis API** is a simple MVP designed to collect, store, and analyze user feedback. This project is part of the **Postgraduate Software Engineering Program at PUC-RIO** and was developed by **Vitor Fernando Castellani**.
 
 The API provides functionalities to:
-- Store user feedback messages.
-- Retrieve feedback entries.
-- Perform sentiment analysis using Natural Language Processing (NLP).
-- Store the sentiment analysis results.
-- Utilize SQLite as the database for easy deployment and testing.
-- Create feedback campaigns with configurable settings (allowing or disallowing multiple feedback submissions from the same IP, defining a maximum number of feedback entries, and setting the campaign as active or inactive).
-- Track feedback submissions by IP address and User Agent.
+- **Feedback Management**:
+  - Create, retrieve, update, and delete feedback entries.
+  - Paginated listing of feedbacks.
+  - Validate feedback submissions based on campaign rules (e.g., maximum submissions, IP restrictions).
+- **Campaign Management**:
+  - Create, retrieve, update, and delete campaigns.
+  - Generate unique short codes for campaigns.
+  - Paginated listing of campaigns.
+  - Track feedback counts for each campaign.
+- **Sentiment Analysis**:
+  - Analyze the sentiment of feedback messages using Natural Language Processing (NLP).
+  - Store sentiment analysis results, including sentiment score, category, detected language, word count, and feedback length.
+  - Perform bulk sentiment analysis for feedbacks in specific campaigns.
+  - Track the progress of feedback analysis tasks.
+- **Dashboard Management**:
+  - Create, retrieve, update, and delete dashboards.
+  - Associate dashboards with campaigns and components.
+  - Retrieve system metrics for dashboards (e.g., total campaigns, total feedbacks, active campaigns).
+  - Generate data for dashboard components, including bar charts, line charts, pie charts, word clouds, sentiment analysis summaries, and trend analysis.
+
+The API uses **SQLite** as the database for easy deployment and testing.
 
 ## 🚀 How to Run the Project
 ### 1️⃣ Clone the Repository
@@ -76,4 +92,5 @@ The API uses **SQLite** as the database engine.
 - For integration tests, the database file will be: `database/test.sqlite`.
 
 ---
+
 Developed by **Vitor Fernando Castellani** - PUC-RIO Software Engineering Postgraduate Program
