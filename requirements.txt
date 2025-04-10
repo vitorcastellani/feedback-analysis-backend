@@ -1,0 +1,11 @@
+flask-openapi3[swagger,redoc,rapidoc]
+pydantic
+sqlalchemy
+flask-cors
+sqlalchemy
+sqlalchemy-utils
+python-dotenv
+pytest
+vaderSentiment
+langdetect
+deep_translator
