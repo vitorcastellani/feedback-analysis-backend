@@ -1,6 +1,6 @@
 # WAVE - Web-based Analysis and Visualization Engine
 
-<img src="static/images/wave-project.png" alt="Web-based Analysis and Visualization Engine" width="250">
+<img src="wave-project.png" alt="Web-based Analysis and Visualization Engine" width="250">
 
 ![Python](https://img.shields.io/badge/Python-3.12-4)
 ![Flask](https://img.shields.io/badge/Flask-3.1.0-blue.svg)
