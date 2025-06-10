@@ -296,18 +296,25 @@ def get_component_data(path: DashboardComponentIDParam):
                     "values": [group["sum"] / group["count"] for group in grouped_data.values()],
                 }
             except AttributeError:
-                return jsonify({"message": f"Invalid x_axis or y_axis configuration: {x_axis}, {y_axis}"}), 400
+                 jsonify({"message": f"Invalid x_axis or y_axis configuration: {x_axis}, {y_axis}"}), 400
 
         elif component.type.value == "word_cloud":
             feedbacks = db.query(Feedback.message).filter(Feedback.campaign_id.in_(campaign_ids)).all()
             word_count = {}
+            stopwords = {
+                "a", "o", "e", "de", "do", "da", "das", "dos", "em", "um", "uma", "uns", "umas", "para", "por", "com",
+                "no", "na", "nos", "nas", "ao", "à", "aos", "às", "que", "se", "é", "não", "sim", "mas", "ou", "como",
+                "the", "and", "of", "to", "in", "for", "on", "with", "at", "by", "an", "be", "is", "are", "was", "were",
+                "it", "this", "that", "from", "as", "or", "if", "so", "do", "does", "did", "not"
+            }
             for feedback in feedbacks:
                 words = feedback.message.split()
                 for word in words:
-                    word = word.lower()
-                    word_count[word] = word_count.get(word, 0) + 1
+                    word = word.lower().strip(".,!?\"'()[]{}:;")
+                    if word and word not in stopwords:
+                        word_count[word] = word_count.get(word, 0) + 1
             data_payload = {
-                "words": [[word, count] for word, count in word_count.items()]
+            "words": [[word, count] for word, count in word_count.items()]
             }
 
         elif component.type.value == "sentiment_analysis":
