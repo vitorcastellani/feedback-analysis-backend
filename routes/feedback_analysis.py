@@ -5,7 +5,8 @@ from model import Feedback, FeedbackAnalysis
 from schemas import FeedbackAnalysisResponse, FeedbackAnalysisCreate, FeedbackCampaignAnalysisRequest, FeedbackProgressResponse
 from config import SessionLocal
 from services import feedback_queue, processing_feedbacks
-from utils import get_star_rating, analyze_sentiment
+import subprocess
+from utils import get_star_rating, analyze_sentiment, global_model_exists, CampaignModelManager
 
 # Create a new Tag for the API documentation
 feedback_analysis_tag = Tag(
@@ -126,3 +127,72 @@ def get_feedback_progress():
     """
     queue_size = feedback_queue.qsize()
     return jsonify({"queue_size": queue_size, "processing": len(processing_feedbacks)}), 200
+
+@feedback_analysis_bp.post(
+    "/feedback/classify-demographic",
+    responses={200: {"message": "Success"}},
+    tags=[feedback_analysis_tag]
+)
+def classify_feedback_demographic(body: FeedbackAnalysisCreate):
+    try:
+        from utils.smart_model import predict_sentiment_smart
+    except ImportError:
+        return jsonify({
+            "error": "ML models not available", 
+            "message": "Please train models first"
+        }), 503
+
+    with SessionLocal() as db:
+        feedback = db.query(Feedback).filter(Feedback.id == body.feedback_id).first()
+        if not feedback:
+            return jsonify({"message": "Feedback not found"}), 404
+
+        result = predict_sentiment_smart(
+            campaign_id=feedback.campaign_id,
+            gender=feedback.gender.value if feedback.gender else "unknown",
+            age_range=feedback.age_range.value if feedback.age_range else "unknown",
+            education_level=feedback.education_level.value if feedback.education_level else "unknown",
+            country=feedback.country.value if feedback.country else "unknown",
+            state=feedback.state.value if feedback.state else "unknown"
+        )
+
+        return jsonify(result), 200
+
+@feedback_analysis_bp.post(
+    "/feedback/initialize-models",
+    responses={200: {"message": "Success"}},
+    tags=[feedback_analysis_tag]
+)
+def initialize_models():
+    """Endpoint para treinar modelos iniciais se não existirem"""
+    try:
+        if not global_model_exists():
+            result = subprocess.run(
+                ["python", "ml_training/train_simple_model.py"], 
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                return jsonify({"message": "Global model trained successfully"}), 200
+            else:
+                return jsonify({"error": "Failed to train global model", "details": result.stderr}), 500
+        else:
+            return jsonify({"message": "Global model already exists"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Error initializing models: {str(e)}"}), 500
+    
+@feedback_analysis_bp.post(
+    "/feedback/retrain-campaign-model",
+    responses={200: {"message": "Success"}},
+    tags=[feedback_analysis_tag]
+)
+def retrain_campaign_model(json: dict):
+    campaign_id = json.get('campaign_id')
+    if not campaign_id:
+        return jsonify({"message": "campaign_id is required"}), 400
+    
+    manager = CampaignModelManager()
+    
+    if manager.train_campaign_model(campaign_id):
+        return jsonify({"message": f"Model for campaign {campaign_id} retrained successfully"}), 200
+    else:
+        return jsonify({"message": f"Failed to retrain model for campaign {campaign_id}"}), 400

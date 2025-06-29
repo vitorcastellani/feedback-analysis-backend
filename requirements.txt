@@ -9,3 +9,6 @@ pytest
 vaderSentiment
 langdetect
 deep_translator
+scikit-learn
+pandas
+joblib

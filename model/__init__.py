@@ -1,5 +1,5 @@
 from .base import BaseModel
-from .enums import SentimentCategory, ComponentType
+from .enums import SentimentCategory, ComponentType, AgeRange, Gender, EducationLevel, Country, State
 from .feedback_analysis import FeedbackAnalysis
 from .feedback import Feedback
 from .campaign import Campaign

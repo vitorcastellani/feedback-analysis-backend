@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey, String
+from sqlalchemy import Column, Integer, Float, ForeignKey, String, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 from model.base import BaseModel
 from model.enums import SentimentCategory
@@ -25,7 +25,7 @@ class FeedbackAnalysis(BaseModel):
     sentiment = Column(Float, nullable=False)
 
     # Sentiment category (e.g., Positive, Neutral, Negative)
-    sentiment_category = Column(String, nullable=False, default=SentimentCategory.NEUTRAL.value)
+    sentiment_category = Column(SqlEnum(SentimentCategory), nullable=False, default=SentimentCategory.NEUTRAL.value)
 
     # Star rating associated with the feedback (e.g., 1 to 5 stars)
     star_rating = Column(Integer, nullable=False)

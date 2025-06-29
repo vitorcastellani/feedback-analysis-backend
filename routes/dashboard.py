@@ -1,7 +1,7 @@
 from flask_openapi3 import APIBlueprint, Tag
 from flask import jsonify
 from config import SessionLocal
-from model import Campaign, Feedback, Dashboard, Component, ComponentType, FeedbackAnalysis
+from model import Campaign, Feedback, Dashboard, Component, ComponentType, FeedbackAnalysis, SentimentCategory
 from schemas import (
     DashboardMetricsResponse,
     DashboardIDParam,
@@ -12,6 +12,7 @@ from schemas import (
     DashboardComponentIDParam,
     DashboardComponentResponse,
 )
+from sqlalchemy import func, case
 
 # Create a new Tag for the Dashboard module
 dashboard_tag = Tag(name="Dashboard", description="Operations related to dashboards.")
@@ -262,41 +263,61 @@ def get_component_data(path: DashboardComponentIDParam):
 
         # Handle different component types
         if component.type.value in ["bar_chart", "line_chart", "pie_chart"]:
-            x_axis = component.settings.get("x_axis")
-            y_axis = component.settings.get("y_axis")
-
-            if not x_axis or not y_axis:
-                return jsonify({"message": "Both x_axis and y_axis must be specified in the component settings"}), 400
-
-            try:
-                if hasattr(FeedbackAnalysis, x_axis) and hasattr(FeedbackAnalysis, y_axis):
-                    data = db.query(getattr(FeedbackAnalysis, x_axis), getattr(FeedbackAnalysis, y_axis)).filter(
-                        FeedbackAnalysis.feedback_id.in_(
-                            db.query(Feedback.id).filter(Feedback.campaign_id.in_(campaign_ids))
-                        )
-                    ).all()
+            x_axis = component.settings.get("x_axis", "sentiment_category")
+            y_axis = component.settings.get("y_axis", "count")
+            
+            field_mapping = {
+                "sentiment_category": FeedbackAnalysis.sentiment_category,
+                "gender": Feedback.gender,
+                "age_range": Feedback.age_range,
+                "education_level": Feedback.education_level,
+                "country": Feedback.country,
+                "state": Feedback.state,
+                "sentiment": FeedbackAnalysis.sentiment,
+                "word_count": FeedbackAnalysis.word_count,
+                "feedback_length": FeedbackAnalysis.feedback_length
+            }
+            
+            x_field = field_mapping.get(x_axis, FeedbackAnalysis.sentiment_category)
+            
+            if y_axis == "count":
+                y_expression = func.count().label('value')
+            elif y_axis == "avg_sentiment":
+                y_expression = func.avg(FeedbackAnalysis.sentiment).label('value')
+            elif y_axis in field_mapping:
+                y_field = field_mapping[y_axis]
+                if y_axis in ["sentiment", "word_count", "feedback_length"]:
+                    y_expression = func.avg(y_field).label('value')
                 else:
-                    data = db.query(getattr(Feedback, x_axis), getattr(Feedback, y_axis)).filter(
-                        Feedback.campaign_id.in_(campaign_ids)
-                    ).all()
+                    y_expression = func.count().label('value')
+            else:
+                y_expression = func.count().label('value')
 
-                # Group by x_axis and calculate the average for y_axis
-                grouped_data = {}
-                for row in data:
-                    x_value = str(getattr(row, x_axis))
-                    y_value = getattr(row, y_axis)
-                    if x_value not in grouped_data:
-                        grouped_data[x_value] = {"sum": y_value, "count": 1}
+            chart_data = db.query(
+                x_field.label('label'),
+                y_expression
+            ).join(
+                Feedback, FeedbackAnalysis.feedback_id == Feedback.id
+            ).filter(
+                Feedback.campaign_id.in_(campaign_ids)
+            ).group_by(x_field).all()
+
+            if chart_data:
+                labels = []
+                values = []
+                for row in chart_data:
+                    if hasattr(row.label, 'value'):
+                        labels.append(row.label.value)
                     else:
-                        grouped_data[x_value]["sum"] += y_value
-                        grouped_data[x_value]["count"] += 1
-
+                        labels.append(str(row.label))
+                    values.append(float(row.value) if row.value else 0)
+                
                 data_payload = {
-                    "labels": list(grouped_data.keys()),
-                    "values": [group["sum"] / group["count"] for group in grouped_data.values()],
+                    "labels": labels,
+                    "values": values
                 }
-            except AttributeError:
-                 jsonify({"message": f"Invalid x_axis or y_axis configuration: {x_axis}, {y_axis}"}), 400
+            else:
+                data_payload = {"data": {"message": "No chart data available"}}
 
         elif component.type.value == "word_cloud":
             feedbacks = db.query(Feedback.message).filter(Feedback.campaign_id.in_(campaign_ids)).all()
@@ -330,7 +351,7 @@ def get_component_data(path: DashboardComponentIDParam):
                 total_sentiment_score = 0
 
                 for data in sentiment_data:
-                    sentiment_summary[data.sentiment_category.lower()] += 1
+                    sentiment_summary[data.sentiment_category.value.lower()] += 1
                     total_sentiment_score += data.sentiment
 
                 total_sentiments = sum(sentiment_summary.values())
@@ -344,16 +365,49 @@ def get_component_data(path: DashboardComponentIDParam):
                 data_payload = {"data": {"message": "No sentiment data available"}}
 
         elif component.type.value == "trend_analysis":
-            trend_data = db.query(FeedbackAnalysis.sentiment, Feedback.created_at).join(
+            trend_data = db.query(
+                func.date(Feedback.created_at).label('date'),
+                func.count(FeedbackAnalysis.id).label('total_feedbacks'),
+                func.avg(FeedbackAnalysis.sentiment).label('avg_sentiment'),
+                func.sum(
+                    case(
+                        (FeedbackAnalysis.sentiment_category == SentimentCategory.POSITIVE, 1),
+                        else_=0
+                    )
+                ).label('positive_count'),
+                func.sum(
+                    case(
+                        (FeedbackAnalysis.sentiment_category == SentimentCategory.NEGATIVE, 1),
+                        else_=0
+                    )
+                ).label('negative_count')
+            ).join(
                 Feedback, FeedbackAnalysis.feedback_id == Feedback.id
             ).filter(
                 Feedback.campaign_id.in_(campaign_ids)
-            ).order_by(Feedback.created_at).all()
+            ).group_by(
+                func.date(Feedback.created_at)
+            ).order_by(
+                func.date(Feedback.created_at)
+            ).all()
 
             if trend_data:
+                labels = [row.date for row in trend_data]
+                sentiment_scores = [float(row.avg_sentiment) for row in trend_data]
+                
+                satisfaction_trend = []
+                for row in trend_data:
+                    if row.total_feedbacks and row.total_feedbacks > 0:
+                        satisfaction_rate = (row.positive_count / row.total_feedbacks) * 100
+                        satisfaction_trend.append(round(satisfaction_rate, 2))
+                    else:
+                        satisfaction_trend.append(0)
+
                 data_payload = {
-                    "labels": [row.created_at.strftime("%Y-%m-%d") for row in trend_data],
-                    "values": [row.sentiment for row in trend_data],
+                    "labels": labels,
+                    "sentiment_scores": sentiment_scores,
+                    "satisfaction_trend": satisfaction_trend,
+                    "total_feedbacks": [int(row.total_feedbacks) for row in trend_data]
                 }
             else:
                 data_payload = {"data": {"message": "No trend data available"}}

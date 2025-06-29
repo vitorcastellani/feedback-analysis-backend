@@ -91,11 +91,11 @@ def analyze_sentiment(text: str):
 
     # Determine sentiment category
     if final_compound >= 0.05:
-        sentiment_category = SentimentCategory.POSITIVE.value
+        sentiment_category = SentimentCategory.POSITIVE
     elif final_compound <= -0.05:
-        sentiment_category = SentimentCategory.NEGATIVE.value
+        sentiment_category = SentimentCategory.NEGATIVE
     else:
-        sentiment_category = SentimentCategory.NEUTRAL.value
+        sentiment_category = SentimentCategory.NEUTRAL
 
     return final_compound, sentiment_category, lang, word_count, feedback_length
 
