@@ -12,3 +12,4 @@ deep_translator
 scikit-learn
 pandas
 joblib
+imbalanced-learn
