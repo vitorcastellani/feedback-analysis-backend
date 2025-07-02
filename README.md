@@ -98,52 +98,16 @@ The API uses **SQLite** as the database engine.
 - In production mode, the database file will be: `database/production.sqlite`.
 - For integration tests, the database file will be: `database/test.sqlite`.
 
-## 🧠 ML Model Training (`ml_training/`)
+## 🧠 ML Model Training & Smart Prediction System
 
-This folder contains scripts and utilities for preparing data and training machine learning models used by the Feedback Analysis API.
+A detailed description of the machine learning training scripts and the smart prediction system can now be found in [`ml_training/README.md`](ml_training/README.md).
 
-### 📄 Contents
+This includes:
+- ML training scripts for dataset export, model training, and sample data generation
+- Smart prediction system architecture and workflow
+- Automated model management and API integration details
 
-- **`export_feedback_dataset.py`**  
-  Extracts feedback metadata from the database and exports it as a CSV file for model training.  
-  **Usage example:**
-  ```sh
-  # Activate your virtual environment first, then run:
-  python -m ml_training.export_feedback_dataset
-  ```
-  - **`train_demographic_model.py`**  
-    Trains a simple machine learning model (Gaussian Naive Bayes) using the exported CSV dataset. The model uses demographic features such as `gender`, `age_range`, `education_level`, `country`, and `state` to predict the sentiment category.  
-    All categorical features and the target are label-encoded before training. The script automatically handles small or imbalanced datasets by adjusting the train/test split strategy.  
-    The trained model and all encoders are saved as `.joblib` files for use in the API backend.  
-    **Usage example:**
-    ```sh
-    python ml_training/train_demographic_model.py
-    ```
-
-### 🔁 Workflow
-
-1. **Export the dataset:**  
-   Activate your virtual environment and run:
-   ```sh
-   python -m ml_training.export_feedback_dataset
-   ```
-   This will generate a file called `feedback_dataset.csv` with the relevant features and labels extracted from the database.
-
-2. **Train the model:**  
-   Run:
-   ```sh
-   python ml_training/train_simple_model.py
-   ```
-   This trains and saves the model and its encoders as `.joblib` files in the `ml_models/` directory.
-
-3. **Integration:**  
-   The API backend loads the trained model and encoders from the `ml_models/` directory. They are used in the `/feedback/classify-demographic` endpoint to classify feedback sentiment based on metadata.
-
-### 📌 Notes
-
-- These scripts are intended for development and model retraining.
-- As new feedback is collected, it is recommended to re-export the dataset and retrain the model to maintain accuracy.
-- Make sure the generated `.joblib` files are stored in the `ml_models/` directory so they can be loaded by the API at runtime.
+Refer to the [`ml_training/README.md`](ml_training/README.md) for full documentation.
 
 ---
 

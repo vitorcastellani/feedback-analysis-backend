@@ -26,7 +26,3 @@ pip-delete-this-directory.txt
 # Others
 .DS_Store
 Thumbs.db
-
-# ML Models
-ml_data/
-ml_models/

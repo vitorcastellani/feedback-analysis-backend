@@ -220,6 +220,6 @@ if __name__ == "__main__":
     print(f"Available countries: {COUNTRIES}")
     print(f"Available states: {STATES}")
     
-    insert_feedback_to_db(500, campaign_id=2)
+    insert_feedback_to_db(2500, campaign_id=4)
     
     print("Data generation completed!")
