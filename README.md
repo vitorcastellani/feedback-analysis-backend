@@ -104,14 +104,22 @@ The API uses **SQLite** as the database engine.
 
 ## 🧠 ML Model Training & Smart Prediction System
 
-A detailed description of the machine learning training scripts and the smart prediction system can now be found in [`ml_training/README.md`](ml_training/README.md).
+The API includes a comprehensive machine learning system for advanced sentiment analysis and feedback classification. This system goes beyond basic sentiment scoring to provide intelligent insights and predictions.
 
-This includes:
-- ML training scripts for dataset export, model training, and sample data generation
-- Smart prediction system architecture and workflow
-- Automated model management and API integration details
+### Key Features:
+- **Custom ML Model Training**: Train classification models using feedback metadata (length, word count, language, etc.)
+- **Smart Prediction Engine**: Automated sentiment analysis with confidence scoring
+- **Model Management**: Version control and deployment of trained models
+- **Bulk Analysis**: Process multiple feedbacks efficiently
+- **Progress Tracking**: Monitor analysis task completion
 
-Refer to the [`ml_training/README.md`](ml_training/README.md) for full documentation.
+### ML Training Scripts:
+- **Dataset Export**: Export feedback data for model training
+- **Model Training**: Train and validate classification models
+- **Sample Data Generation**: Generate synthetic data for testing
+- **Model Evaluation**: Performance metrics and validation
+
+For detailed documentation on the ML training pipeline, model architecture, and implementation details, refer to [`ml_training/README.md`](ml_training/README.md).
 
 ---
 
