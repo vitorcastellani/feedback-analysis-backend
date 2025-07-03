@@ -12,6 +12,10 @@
 ![VaderSentiment](https://img.shields.io/badge/VaderSentiment-3.3.2-blue.svg)
 ![Langdetect](https://img.shields.io/badge/Langdetect-1.0.9-blue.svg)
 ![Deep Translator](https://img.shields.io/badge/Deep--Translator-1.11.4-blue.svg)
+![Scikit-learn](https://img.shields.io/badge/Scikit--learn-1.5.2-orange.svg)
+![Pandas](https://img.shields.io/badge/Pandas-2.2.3-green.svg)
+![Joblib](https://img.shields.io/badge/Joblib-1.4.2-red.svg)
+![Imbalanced-learn](https://img.shields.io/badge/Imbalanced--learn-0.12.4-purple.svg)
 
 ## 📌 Project Overview
 
