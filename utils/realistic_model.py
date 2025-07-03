@@ -232,7 +232,7 @@ def realistic_model_exists() -> bool:
 def compare_with_vader(message: str, vader_result: Dict, **kwargs) -> Dict:
     """Compare realistic model prediction with VADER analysis"""
     
-    realistic_result = predict_sentiment_realistic(message, **kwargs)
+    realistic_result = predict_sentiment(message, **kwargs)
     
     if "error" in realistic_result:
         return realistic_result

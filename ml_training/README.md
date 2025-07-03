@@ -1,80 +1,190 @@
-# ML Models Directory
+# ML Training Pipeline
 
-This directory contains trained machine learning models and associated files used by the Feedback Analysis API for sentiment classification.
+Este diretório contém o pipeline completo de treinamento de machine learning para análise de sentimentos de feedback, incluindo geração de dados, exportação de datasets, treinamento de modelos e validação.
 
-## Directory Contents
+## 📁 Estrutura do Diretório
 
-### **Main Model Files**
-- **`sentiment_classifier.joblib`** - Primary Random Forest sentiment classification model
-- **`feature_columns.joblib`** - List of feature columns used by the model
-- **`model_statistics.joblib`** - Comprehensive model metadata and performance statistics
+```
+ml_training/
+├── README.md                    # Este arquivo
+├── AEPD_WAVE_PROJECT.ipynb     # Jupyter notebook para análise exploratória
+├── export_feedback_dataset.py  # Script para exportar dados do banco para CSV
+├── generate_sample_data.py     # Gerador de dados sintéticos para teste
+└── train_realistic_model.py    # Script principal de treinamento
+```
 
-### **Label Encoders**
-- **`age_range_encoder.joblib`** - Encoder for age ranges: `['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'other']`
-- **`country_encoder.joblib`** - Encoder for 25 countries including Brazil, US, UK, etc.
-- **`detected_language_encoder.joblib`** - Encoder for detected languages
-- **`education_level_encoder.joblib`** - Encoder for education levels: `['bachelor', 'elementary', 'highschool', 'master', 'other', 'phd']`
-- **`gender_encoder.joblib`** - Encoder for gender: `['female', 'male', 'other', 'prefer not to say']`
-- **`sentiment_category_encoder.joblib`** - Encoder for sentiment classes: `['negative', 'neutral', 'positive']`
-- **`state_encoder.joblib`** - Encoder for Brazilian states: `['BA', 'DF', 'MG', 'Other', 'PE', 'RJ', 'RS', 'SP']`
+## 🎯 Arquivos Principais
 
-## **Current Model Specifications**
+### `train_realistic_model.py`
+**Script principal de treinamento do modelo realístico**
 
-### **Model Type:** Text-Based Random Forest Classifier
-- **Algorithm:** RandomForestClassifier
-- **Training Approach:** Conservative, avoiding data leakage
-- **Performance:** 69.6% test accuracy (33% improvement over baseline)
-- **Cross-Validation:** 75.4% ± 1.4%
+- **Objetivo**: Treinar modelos de classificação de sentimentos que evitam vazamento de dados
+- **Abordagem**: Modelos conservadores usando apenas características demográficas e textuais
+- **Algoritmo**: Random Forest com validação cruzada
+- **Saída**: Modelos treinados salvos em `../ml_models/`
 
-### **Features Used (12 total):**
-1. **Demographic Context (3 features):**
-   - `gender` - User gender
-   - `age_range` - User age range  
-   - `education_level` - User education level
+**Características:**
+- Balanceamento de classes com RandomUnderSampler
+- Validação cruzada de 5 folds
+- Comparação de performance com baseline
+- Seleção automática do melhor modelo
 
-2. **Text Analysis Features (9 features):**
-   - `word_count` - Number of words in feedback
-   - `feedback_length` - Character count of feedback
-   - `avg_word_length` - Average characters per word
-   - `is_very_short` - Binary flag for very short texts (≤5 words)
-   - `is_short` - Binary flag for short texts (≤15 words)
-   - `is_medium` - Binary flag for medium texts (16-50 words)
-   - `is_long` - Binary flag for long texts (>50 words)
-   - `text_density` - Word density (words per character)
-   - `detected_language` - Language of the feedback
+### `export_feedback_dataset.py`
+**Exportador de dados do banco para treinamento**
 
-### **Feature Importance Ranking:**
-1. **`feedback_length`** (26.4%) - Text length is highly predictive
-2. **`text_density`** (21.7%) - Word density indicates writing style
-3. **`avg_word_length`** (20.2%) - Longer words suggest formal language
-4. **`detected_language`** (16.5%) - Language affects sentiment expression
-5. **`word_count`** (8.1%) - Number of words provides context
-6. **`is_very_short`** (4.8%) - Very short texts have distinct patterns
-7. **Other features** (<1% each) - Demographic context
+- **Função**: Extrai feedbacks e análises do banco de dados
+- **Saída**: `../ml_data/feedback_dataset.csv`
+- **Dados incluídos**: 
+  - Dados demográficos (gênero, idade, educação, localização)
+  - Características textuais (contagem de palavras, tamanho, idioma)
+  - Categoria de sentimento (target)
 
-## 🚀 **Usage in API**
+### `generate_sample_data.py`
+**Gerador de dados sintéticos para teste**
 
-### **Available Functions:**
-- **`predict_sentiment_realistic()`** - Main prediction function
-- **`get_model_performance()`** - Model statistics and metadata
-- **`compare_with_vader()`** - Compare ML prediction with VADER analysis
-- **`realistic_model_exists()`** - Check if model files are available
+- **Objetivo**: Criar dados de exemplo para desenvolvimento e teste
+- **Conteúdo**: Feedbacks realistas em português e inglês
+- **Categorias**: Positivo, neutro, negativo
+- **Demografia**: Combinações variadas de idade, gênero, educação
 
-## 🔄 **Retraining Process**
+### `AEPD_WAVE_PROJECT.ipynb`
+**Jupyter notebook para análise exploratória**
 
-To retrain the model with new data:
+- **Uso**: Análise de dados, visualizações, experimentação
+- **Conteúdo**: Exploração de padrões nos dados de feedback
 
-1. **Export fresh dataset:**
-   ```bash
-   python -m ml_training.export_feedback_dataset
-   ```
+## 🤖 Modelo Atual
 
-2. **Train realistic models:**
-   ```bash
-   python -m ml_training.train_realistic_model
-   ```
+### **Especificações Técnicas**
+- **Tipo**: Random Forest Classifier (Text-based)
+- **Algoritmo**: RandomForestClassifier (50 árvores, profundidade 4)
+- **Abordagem**: Conservadora, evitando vazamento de dados
+- **Performance**: 100% de acurácia no teste (dataset balanceado)
+- **Melhoria sobre baseline**: 66.7% (baseline: 33.3%)
 
-3. **Verify model files:**
-   - Check that all `.joblib` files are updated
-   - Verify performance in `model_statistics.joblib`
-   - Test predictions with `utils.realistic_model`
+### **Features Utilizadas (12 total)**
+
+**Demográficas (3):**
+- `gender` - Gênero do usuário
+- `age_range` - Faixa etária
+- `education_level` - Nível de educação
+
+**Textuais (9):**
+- `word_count` - Número de palavras
+- `feedback_length` - Tamanho do texto em caracteres
+- `avg_word_length` - Tamanho médio das palavras
+- `is_very_short` - Texto muito curto (≤5 palavras)
+- `is_short` - Texto curto (≤15 palavras)
+- `is_medium` - Texto médio (16-50 palavras)
+- `is_long` - Texto longo (>50 palavras)
+- `text_density` - Densidade de palavras
+- `detected_language` - Idioma detectado
+
+### **Importância das Features**
+1. **`education_level`** (29.0%) - Nível educacional mais importante
+2. **`age_range`** (27.0%) - Faixa etária significativa
+3. **`gender`** (17.3%) - Gênero com impacto moderado
+4. **`feedback_length`** (12.2%) - Tamanho do texto relevante
+5. **`text_density`** (7.9%) - Densidade de palavras
+6. **`avg_word_length`** (3.9%) - Tamanho médio das palavras
+7. **Outras features** (<2% cada)
+
+### **Dataset de Treinamento**
+- **Total de amostras**: 60 (balanced)
+- **Distribuição de classes**: 20 positivos, 20 neutros, 20 negativos
+- **Idioma principal**: Português (pt)
+- **Balanceamento**: RandomUnderSampler aplicado
+
+## 🚀 Como Usar
+
+### 1. Gerar Dados de Teste
+```bash
+python -m ml_training.generate_sample_data
+```
+
+### 2. Exportar Dados do Banco
+```bash
+python -m ml_training.export_feedback_dataset
+```
+
+### 3. Treinar Modelo
+```bash
+python -m ml_training.train_realistic_model
+```
+
+### 4. Verificar Modelo Treinado
+```python
+from utils.realistic_model import get_model_performance
+print(get_model_performance())
+```
+
+## 📊 Arquivos de Saída
+
+### Diretório `../ml_models/`
+- `sentiment_classifier.joblib` - Modelo principal
+- `feature_columns.joblib` - Lista de features
+- `model_statistics.joblib` - Estatísticas e metadados
+- `*_encoder.joblib` - Encoders para variáveis categóricas
+
+### Diretório `../ml_data/`
+- `feedback_dataset.csv` - Dataset de treinamento exportado
+
+## 🔄 Pipeline de Retreinamento
+
+### Automatizado
+```bash
+# Pipeline completo
+python -m ml_training.export_feedback_dataset
+python -m ml_training.train_realistic_model
+```
+
+### Manual (desenvolvimento)
+1. Gerar dados sintéticos (se necessário)
+2. Exportar dados reais do banco
+3. Executar treinamento
+4. Validar performance
+5. Testar predições
+
+## 🧪 Validação e Testes
+
+### Testes Automatizados
+```bash
+# Testes do modelo
+python -m pytest tests/ml_model_test.py -v
+
+# Testes de endpoints
+python -m pytest tests/feedback_analysis_test.py -v
+```
+
+### Validação Manual
+```python
+from utils.realistic_model import predict_sentiment
+
+result = predict_sentiment(
+    message="Produto excelente, recomendo!",
+    gender="male",
+    age_range="25-34",
+    education_level="bachelor"
+)
+print(result)
+```
+
+## ⚠️ Notas Importantes
+
+### **Limitações Atuais**
+- Dataset pequeno (60 amostras) pode causar overfitting
+- Performance de 100% sugere possível overfitting
+- Necessário mais dados diversificados para produção
+
+### **Recomendações**
+1. **Expandir dataset**: Coletar mais feedbacks reais
+2. **Validação externa**: Testar com dados não vistos
+3. **Monitoramento**: Acompanhar performance em produção
+4. **Retreino regular**: Atualizar modelo com novos dados
+
+### **Próximos Passos**
+- [ ] Implementar validação holdout
+- [ ] Adicionar mais features textuais
+- [ ] Testar outros algoritmos
+- [ ] Implementar drift detection
+- [ ] Adicionar métricas de negócio

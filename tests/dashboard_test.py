@@ -1,4 +1,5 @@
 from model import Campaign, Feedback, Dashboard, Component
+from model import FeedbackAnalysis, SentimentCategory
 
 
 def test_dashboard_metrics(client, db_session):
@@ -144,7 +145,6 @@ def test_delete_dashboard(client, db_session):
     response = client.get(f"/api/dashboard/{dashboard.id}")
     assert response.status_code == 404
 
-
 def test_get_component_data(client, db_session):
     """Test retrieving data for a specific component within a dashboard."""
     campaign1 = Campaign(name="Campaign 1", active=True, short_code="ABC123")
@@ -159,15 +159,52 @@ def test_get_component_data(client, db_session):
     component = Component(
         name="Bar Chart Component",
         type="BAR_CHART",
-        settings={"x_axis": "id", "y_axis": "id"},
+        settings={"x_axis": "sentiment_category", "y_axis": "count"},
         dashboard_id=dashboard.id
     )
     db_session.add(component)
     db_session.commit()
 
-    feedback1 = Feedback(campaign_id=campaign1.id, message="Feedback 1")
-    feedback2 = Feedback(campaign_id=campaign2.id, message="Feedback 2")
+    feedback1 = Feedback(
+        campaign_id=campaign1.id, 
+        message="Feedback 1",
+        age_range="18-24",
+        gender="male",
+        education_level="bachelor",
+        country="brazil",
+        state="SP"
+    )
+    feedback2 = Feedback(
+        campaign_id=campaign2.id, 
+        message="Feedback 2",
+        age_range="25-34",
+        gender="female",
+        education_level="master",
+        country="brazil",
+        state="RJ"
+    )
     db_session.add_all([feedback1, feedback2])
+    db_session.commit()
+
+    analysis1 = FeedbackAnalysis(
+        feedback_id=feedback1.id,
+        detected_language="en",
+        word_count=10,
+        feedback_length=50,
+        sentiment=0.8,
+        sentiment_category=SentimentCategory.POSITIVE,
+        star_rating=5
+    )
+    analysis2 = FeedbackAnalysis(
+        feedback_id=feedback2.id,
+        detected_language="en",
+        word_count=15,
+        feedback_length=75,
+        sentiment=0.2,
+        sentiment_category=SentimentCategory.NEGATIVE,
+        star_rating=2
+    )
+    db_session.add_all([analysis1, analysis2])
     db_session.commit()
 
     response = client.get(f"/api/dashboard/{dashboard.id}/component/{component.id}/data")

@@ -202,3 +202,41 @@ def test_get_feedback_progress(client):
     assert "processing" in data
     assert data["queue_size"] == len(list(feedback_queue.queue))
     assert data["processing"] == len(processing_feedbacks)
+
+
+def test_classify_feedback_demographic_success(client, db_session):
+    """Test successful demographic classification for an existing feedback."""
+    campaign = Campaign(
+        name="Demographic Campaign",
+        description="Campaign for demographic classification test",
+        short_code="DEMO"
+    )
+    db_session.add(campaign)
+    db_session.commit()
+
+    feedback = Feedback(
+        message="Este produto é fantástico! Recomendo muito.",
+        campaign_id=campaign.id,
+        age_range=AgeRange.age_25_34.value,
+        gender=Gender.male.value,
+        education_level=EducationLevel.bachelor.value,
+        country=Country.brazil.value,
+        state=State.SP.value,
+        user_ip=None,
+        user_agent=None
+    )
+    db_session.add(feedback)
+    db_session.commit()
+
+    response = client.post("/api/feedback/classify-demographic", json={"feedback_id": feedback.id})
+    assert response.status_code == 200
+    data = response.get_json()
+
+    if "error" not in data:
+        assert "predicted_category" in data, "Should contain predicted category"
+        assert "confidence" in data, "Should contain confidence score"
+        assert "text_features" in data, "Should contain text features"
+        assert "model_info" in data, "Should contain model info"
+        
+        valid_sentiments = ["positive", "negative", "neutral"]
+        assert data["predicted_category"] in valid_sentiments, f"Invalid sentiment: {data['predicted_category']}"
