@@ -47,6 +47,11 @@ def create_feedback(body: FeedbackCreate):
 
         new_feedback = Feedback(
             campaign_id=body.campaign_id,
+            age_range=body.age_range,
+            gender=body.gender,
+            education_level=body.education_level,
+            country=body.country,
+            state=body.state,
             message=body.message,
             user_ip=user_ip,
             user_agent=user_agent
@@ -56,7 +61,7 @@ def create_feedback(body: FeedbackCreate):
         db.refresh(new_feedback)
         return jsonify(FeedbackResponse.model_validate(new_feedback).model_dump()), 201
 
-# List all feedbacks with pagination
+# List all feedbacks with pagination and filters
 @feedback_bp.get(
     "/feedbacks",
     responses={200: ListResponseSchema[FeedbackResponse]},
@@ -65,11 +70,34 @@ def create_feedback(body: FeedbackCreate):
 def get_feedbacks(query: PaginationSchema):
     """
     Retrieve a paginated list of all feedbacks.
-    Supports offset and limit for pagination.
+    Supports offset, limit, and filtering by campaign_id, age_range, gender, education_level, country, state.
     """
     with SessionLocal() as db:
-        total = db.query(Feedback).count()
-        feedbacks = db.query(Feedback).offset(query.offset).limit(query.limit).all()
+        q = db.query(Feedback)
+
+        # Optional filters from query params
+        campaign_id = request.args.get("campaign_id", type=int)
+        age_range = request.args.get("age_range")
+        gender = request.args.get("gender")
+        education_level = request.args.get("education_level")
+        country = request.args.get("country")
+        state = request.args.get("state")
+
+        if campaign_id is not None:
+            q = q.filter(Feedback.campaign_id == campaign_id)
+        if age_range:
+            q = q.filter(Feedback.age_range == age_range)
+        if gender:
+            q = q.filter(Feedback.gender == gender)
+        if education_level:
+            q = q.filter(Feedback.education_level == education_level)
+        if country:
+            q = q.filter(Feedback.country == country)
+        if state:
+            q = q.filter(Feedback.state == state)
+
+        total = q.count()
+        feedbacks = q.offset(query.offset).limit(query.limit).all()
 
         response = ListResponseSchema(
             total=total,

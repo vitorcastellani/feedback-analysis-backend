@@ -1,6 +1,6 @@
 from model import Feedback, SentimentCategory, Campaign
+from model.enums import AgeRange, Gender, EducationLevel, Country, State
 from services import feedback_queue, processing_feedbacks
-
 
 def test_analyze_feedback_success(client, db_session):
     """Test successful sentiment analysis for an existing feedback."""
@@ -14,7 +14,14 @@ def test_analyze_feedback_success(client, db_session):
 
     feedback = Feedback(
         message="Amei a música, foi incrível!",
-        campaign_id=campaign.id
+        campaign_id=campaign.id,
+        age_range=AgeRange.other.value,
+        gender=Gender.prefer_not_to_say.value,
+        education_level=EducationLevel.other.value,
+        country=Country.other.value,
+        state=State.other.value,
+        user_ip=None,
+        user_agent=None
     )
     db_session.add(feedback)
     db_session.commit()
@@ -51,7 +58,14 @@ def test_analyze_feedback_already_exists(client, db_session):
 
     feedback = Feedback(
         message="Muito ruim, odiei essa experiência.",
-        campaign_id=campaign.id
+        campaign_id=campaign.id,
+        age_range=AgeRange.other.value,
+        gender=Gender.prefer_not_to_say.value,
+        education_level=EducationLevel.other.value,
+        country=Country.other.value,
+        state=State.other.value,
+        user_ip=None,
+        user_agent=None
     )
     db_session.add(feedback)
     db_session.commit()
@@ -94,15 +108,36 @@ def test_analyze_all_feedbacks_success(client, db_session):
 
     feedback1 = Feedback(
         message="Ótimo produto!",
-        campaign_id=campaign1.id
+        campaign_id=campaign1.id,
+        age_range=AgeRange.other.value,
+        gender=Gender.prefer_not_to_say.value,
+        education_level=EducationLevel.other.value,
+        country=Country.other.value,
+        state=State.other.value,
+        user_ip=None,
+        user_agent=None
     )
     feedback2 = Feedback(
         message="Não gostei do atendimento.",
-        campaign_id=campaign1.id
+        campaign_id=campaign1.id,
+        age_range=AgeRange.other.value,
+        gender=Gender.prefer_not_to_say.value,
+        education_level=EducationLevel.other.value,
+        country=Country.other.value,
+        state=State.other.value,
+        user_ip=None,
+        user_agent=None
     )
     feedback3 = Feedback(
         message="Excelente qualidade!",
-        campaign_id=campaign2.id
+        campaign_id=campaign2.id,
+        age_range=AgeRange.other.value,
+        gender=Gender.prefer_not_to_say.value,
+        education_level=EducationLevel.other.value,
+        country=Country.other.value,
+        state=State.other.value,
+        user_ip=None,
+        user_agent=None
     )
     db_session.add_all([feedback1, feedback2, feedback3])
     db_session.commit()
@@ -167,3 +202,41 @@ def test_get_feedback_progress(client):
     assert "processing" in data
     assert data["queue_size"] == len(list(feedback_queue.queue))
     assert data["processing"] == len(processing_feedbacks)
+
+
+def test_classify_feedback_demographic_success(client, db_session):
+    """Test successful demographic classification for an existing feedback."""
+    campaign = Campaign(
+        name="Demographic Campaign",
+        description="Campaign for demographic classification test",
+        short_code="DEMO"
+    )
+    db_session.add(campaign)
+    db_session.commit()
+
+    feedback = Feedback(
+        message="Este produto é fantástico! Recomendo muito.",
+        campaign_id=campaign.id,
+        age_range=AgeRange.age_25_34.value,
+        gender=Gender.male.value,
+        education_level=EducationLevel.bachelor.value,
+        country=Country.brazil.value,
+        state=State.SP.value,
+        user_ip=None,
+        user_agent=None
+    )
+    db_session.add(feedback)
+    db_session.commit()
+
+    response = client.post("/api/feedback/classify-demographic", json={"feedback_id": feedback.id})
+    assert response.status_code == 200
+    data = response.get_json()
+
+    if "error" not in data:
+        assert "predicted_category" in data, "Should contain predicted category"
+        assert "confidence" in data, "Should contain confidence score"
+        assert "demographic_features" in data, "Should contain demographic features"
+        assert "model_info" in data, "Should contain model info"
+        
+        valid_sentiments = ["positive", "negative", "neutral"]
+        assert data["predicted_category"] in valid_sentiments, f"Invalid sentiment: {data['predicted_category']}"

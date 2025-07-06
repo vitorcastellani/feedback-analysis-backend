@@ -9,6 +9,11 @@ from config import (
     NEUTRAL_PENALTY_FACTOR,
 )
 from model.enums import SentimentCategory
+from utils.portuguese_sentiment import (
+    preprocess_portuguese_text,
+    calibrate_portuguese_score,
+    adjust_thresholds_for_portuguese
+)
 
 # Initialize the sentiment analyzer
 analyzer = SentimentIntensityAnalyzer()
@@ -36,7 +41,7 @@ def detect_language(text: str) -> str:
 
 def analyze_sentiment(text: str):
     """
-    Analyzes the sentiment of a given text.
+    Analyzes the sentiment of a given text with improvements for Portuguese.
 
     Args:
         text (str): The input text.
@@ -51,9 +56,14 @@ def analyze_sentiment(text: str):
     """
     feedback_length = len(text)
     word_count = len(text.split())
+    original_text = text
 
     # Detect the language of the text
     lang = detect_language(text)
+
+    # Preprocess Portuguese text if detected
+    if lang == "pt":
+        text = preprocess_portuguese_text(text)
 
     # Translate text to English if not already in English
     if lang != "en":
@@ -89,13 +99,20 @@ def analyze_sentiment(text: str):
     # Calculate the final compound score
     final_compound = sum(compound_scores) / len(compound_scores) if compound_scores else 0.0
 
-    # Determine sentiment category
-    if final_compound >= 0.05:
-        sentiment_category = SentimentCategory.POSITIVE.value
-    elif final_compound <= -0.05:
-        sentiment_category = SentimentCategory.NEGATIVE.value
+    # Adjust the final compound score for Portuguese texts
+    if lang == "pt":
+        final_compound = calibrate_portuguese_score(final_compound, original_text)
+        positive_threshold, negative_threshold = adjust_thresholds_for_portuguese()
     else:
-        sentiment_category = SentimentCategory.NEUTRAL.value
+        positive_threshold, negative_threshold = 0.05, -0.05
+
+    # Determine sentiment category with adjusted thresholds
+    if final_compound >= positive_threshold:
+        sentiment_category = SentimentCategory.POSITIVE
+    elif final_compound <= negative_threshold:
+        sentiment_category = SentimentCategory.NEGATIVE
+    else:
+        sentiment_category = SentimentCategory.NEUTRAL
 
     return final_compound, sentiment_category, lang, word_count, feedback_length
 

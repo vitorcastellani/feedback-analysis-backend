@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SqlEnum, JSON
 from model import BaseModel
 from sqlalchemy.orm import relationship
 from model.enums import ComponentType
@@ -17,7 +17,7 @@ class Component(BaseModel):
     description = Column(String, nullable=True)
     
     # Type of the component, using an Enum defined in ComponentType (required field)
-    type = Column(Enum(ComponentType), nullable=False)
+    type = Column(SqlEnum(ComponentType), nullable=False)
     
     # JSON field for additional settings (optional field)
     settings = Column(JSON, nullable=True)

@@ -12,6 +12,10 @@
 ![VaderSentiment](https://img.shields.io/badge/VaderSentiment-3.3.2-blue.svg)
 ![Langdetect](https://img.shields.io/badge/Langdetect-1.0.9-blue.svg)
 ![Deep Translator](https://img.shields.io/badge/Deep--Translator-1.11.4-blue.svg)
+![Scikit-learn](https://img.shields.io/badge/Scikit--learn-1.5.2-orange.svg)
+![Pandas](https://img.shields.io/badge/Pandas-2.2.3-green.svg)
+![Joblib](https://img.shields.io/badge/Joblib-1.4.2-red.svg)
+![Imbalanced-learn](https://img.shields.io/badge/Imbalanced--learn-0.12.4-purple.svg)
 
 ## 📌 Project Overview
 
@@ -20,20 +24,25 @@
 The **Feedback Analysis API** is a simple MVP designed to collect, store, and analyze user feedback. This project is part of the **Postgraduate Software Engineering Program at PUC-RIO** and was developed by **Vitor Fernando Castellani**.
 
 The API provides functionalities to:
+
 - **Feedback Management**:
   - Create, retrieve, update, and delete feedback entries.
   - Paginated listing of feedbacks.
   - Validate feedback submissions based on campaign rules (e.g., maximum submissions, IP restrictions).
+
 - **Campaign Management**:
   - Create, retrieve, update, and delete campaigns.
   - Generate unique short codes for campaigns.
   - Paginated listing of campaigns.
   - Track feedback counts for each campaign.
+
 - **Sentiment Analysis**:
-  - Analyze the sentiment of feedback messages using Natural Language Processing (NLP).
+  - Analyze the sentiment of feedback messages using Natural Language Processing (NLP) with the VaderSentiment library.
+  - Analyze sentiment using a custom-trained classification model based on feedback metadata (e.g., length, word count, language).
   - Store sentiment analysis results, including sentiment score, category, detected language, word count, and feedback length.
   - Perform bulk sentiment analysis for feedbacks in specific campaigns.
   - Track the progress of feedback analysis tasks.
+
 - **Dashboard Management**:
   - Create, retrieve, update, and delete dashboards.
   - Associate dashboards with campaigns and components.
@@ -43,6 +52,7 @@ The API provides functionalities to:
 The API uses **SQLite** as the database for easy deployment and testing.
 
 ## 🚀 How to Run the Project
+
 ### 1️⃣ Clone the Repository
 ```sh
 git clone https://github.com/vitorcastellani/feedback-analysis-backend.git
@@ -91,6 +101,25 @@ By default, a test database (`test.sqlite`) will be created in the `database/` f
 The API uses **SQLite** as the database engine.
 - In production mode, the database file will be: `database/production.sqlite`.
 - For integration tests, the database file will be: `database/test.sqlite`.
+
+## 🧠 ML Model Training & Smart Prediction System
+
+The API includes a comprehensive machine learning system for advanced sentiment analysis and feedback classification. This system goes beyond basic sentiment scoring to provide intelligent insights and predictions.
+
+### Key Features:
+- **Custom ML Model Training**: Train classification models using feedback metadata (length, word count, language, etc.)
+- **Smart Prediction Engine**: Automated sentiment analysis with confidence scoring
+- **Model Management**: Version control and deployment of trained models
+- **Bulk Analysis**: Process multiple feedbacks efficiently
+- **Progress Tracking**: Monitor analysis task completion
+
+### ML Training Scripts:
+- **Dataset Export**: Export feedback data for model training
+- **Model Training**: Train and validate classification models
+- **Sample Data Generation**: Generate synthetic data for testing
+- **Model Evaluation**: Performance metrics and validation
+
+For detailed documentation on the ML training pipeline, model architecture, and implementation details, refer to [`ml_training/README.md`](ml_training/README.md).
 
 ---
 

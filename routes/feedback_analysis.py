@@ -5,7 +5,8 @@ from model import Feedback, FeedbackAnalysis
 from schemas import FeedbackAnalysisResponse, FeedbackAnalysisCreate, FeedbackCampaignAnalysisRequest, FeedbackProgressResponse
 from config import SessionLocal
 from services import feedback_queue, processing_feedbacks
-from utils import get_star_rating, analyze_sentiment
+import subprocess
+from utils import get_star_rating, analyze_sentiment, predict_sentiment, predict_sentiment_demographic
 
 # Create a new Tag for the API documentation
 feedback_analysis_tag = Tag(
@@ -126,3 +127,31 @@ def get_feedback_progress():
     """
     queue_size = feedback_queue.qsize()
     return jsonify({"queue_size": queue_size, "processing": len(processing_feedbacks)}), 200
+
+@feedback_analysis_bp.post(
+    "/feedback/classify-demographic",
+    responses={200: {"message": "Success"}},
+    tags=[feedback_analysis_tag]
+)
+def classify_feedback_demographic(body: FeedbackAnalysisCreate):
+    with SessionLocal() as db:
+        feedback = db.query(Feedback).filter(Feedback.id == body.feedback_id).first()
+        if not feedback:
+            return jsonify({"message": "Feedback not found"}), 404
+
+        # Get detected language from analysis if available
+        detected_language = "pt"  # default
+        if feedback.analysis and feedback.analysis.detected_language:
+            detected_language = feedback.analysis.detected_language
+
+        result = predict_sentiment_demographic(
+            campaign_id=feedback.campaign_id,
+            gender=feedback.gender.value if feedback.gender else "unknown",
+            age_range=feedback.age_range.value if feedback.age_range else "unknown",
+            education_level=feedback.education_level.value if feedback.education_level else "unknown",
+            country=feedback.country.value if feedback.country else "unknown",
+            state=feedback.state.value if feedback.state else "unknown",
+            detected_language=detected_language
+        )
+
+        return jsonify(result), 200
