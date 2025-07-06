@@ -235,7 +235,7 @@ def test_classify_feedback_demographic_success(client, db_session):
     if "error" not in data:
         assert "predicted_category" in data, "Should contain predicted category"
         assert "confidence" in data, "Should contain confidence score"
-        assert "text_features" in data, "Should contain text features"
+        assert "demographic_features" in data, "Should contain demographic features"
         assert "model_info" in data, "Should contain model info"
         
         valid_sentiments = ["positive", "negative", "neutral"]

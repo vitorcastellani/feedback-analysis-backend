@@ -1,86 +1,25 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import random
+import pandas as pd
 from datetime import datetime, timedelta
 from config import SessionLocal
 from model import Feedback, AgeRange, Gender, EducationLevel, Country, State
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 AGE_RANGES = [e.name for e in AgeRange]
 GENDERS = [e.name for e in Gender]
 EDUCATION_LEVELS = [e.name for e in EducationLevel]
 COUNTRIES = [e.name for e in Country]
-STATES = [e.name for e in State]
 
-MESSAGES = {
-    "positive": [
-        "Amei o curso de engenharia de software da puc rio.",
-        "Adorei o curso de direito",
-        "Excelente programa, superou minhas expectativas!",
-        "Ótima didática e conteúdo!",
-        "Curso incrível, aprendi muito!",
-        "Maravilhoso, vale cada centavo!",
-        "Curso excepcional, muito bem organizado!",
-        "Perfeito em todos os aspectos!",
-        "O melhor curso que já fiz na vida!",
-        "Love everything about this course!",
-        "Amazing learning experience!",
-        "Fantastic experience, highly recommend!",
-        "Great course, learned so much!",
-        "Wonderful program, thank you!",
-        "Perfect course structure and amazing professors!",
-        "Professores excelentes e conteúdo relevante.",
-        "O material didático estava muito bem elaborado.",
-        "A interação com os colegas foi enriquecedora.",
-        "A plataforma é muito intuitiva e fácil de usar.",
-        "O suporte técnico foi muito eficiente."
-    ],
-    "neutral": [
-        "O curso está ok, dentro do esperado.",
-        "Curso regular, tem pontos bons e ruins.",
-        "Standard course experience.",
-        "It's an average course.",
-        "Mediano, dentro do esperado.",
-        "O curso atendeu às expectativas mínimas.",
-        "A estrutura do curso é aceitável.",
-        "O conteúdo é razoável.",
-        "Nem bom nem ruim, apenas suficiente.",
-        "A experiência foi neutra.",
-        "Nada me impressionou, mas também não me desagradou.",
-        "O curso cumpre o básico.",
-        "Faltou profundidade em alguns temas, mas no geral é passável.",
-        "Recursos limitados, mas usáveis.",
-        "Não teve grandes problemas nem grandes méritos.",
-        "Bom para iniciantes, mas superficial.",
-        "O curso é funcional, sem destaques.",
-        "Professores razoáveis, conteúdo equilibrado.",
-        "A plataforma funcionou bem na maioria das vezes.",
-        "Experiência ok."
-    ],
-    "negative": [
-        "Não gostei do curso, muito confuso.",
-        "Curso péssimo, perda de tempo.",
-        "Conteúdo desatualizado.",
-        "Péssima experiência.",
-        "Curso horrível.",
-        "Professores despreparados e pouco didáticos.",
-        "A plataforma travava o tempo todo.",
-        "Muito conteúdo copiado da internet.",
-        "Faltou interação com os professores.",
-        "Suporte técnico inexistente.",
-        "A proposta do curso não foi cumprida.",
-        "Avaliações sem critério claro.",
-        "Experiência frustrante.",
-        "O curso não entregou o prometido.",
-        "Carga horária mal distribuída.",
-        "Sem exemplos práticos, apenas teoria rasa.",
-        "Material didático confuso e mal organizado.",
-        "Plataforma lenta e difícil de navegar.",
-        "Feedbacks demorados ou inexistentes.",
-        "Não recomendo este curso para ninguém."
-    ]
-}
+try:
+    messages_df = pd.read_csv(os.path.join('ml_data', 'feedback_messages.csv'))
+except FileNotFoundError:
+    messages_df = pd.read_csv(os.path.join('..', 'ml_data', 'feedback_messages.csv'))
+except Exception as e:
+    print(f"Error reading feedback_messages.csv: {e}")
+    raise
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
@@ -138,7 +77,8 @@ def insert_feedback(num_records=5000, campaign_id=1, batch_size=100):
             country = random.choice(COUNTRIES)
             state = get_state_for_country(country)
             sentiment = determine_sentiment(age, gender, education, country)
-            message = random.choice(MESSAGES[sentiment])
+            
+            message = messages_df[messages_df['sentiment'] == sentiment]['message'].sample(n=1).values[0]
 
             feedback = Feedback(
                 age_range=age,

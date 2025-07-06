@@ -202,6 +202,173 @@ def predict_sentiment(
         print(f"Error in realistic sentiment prediction: {e}")
         return {"error": "prediction_failed", "details": str(e)}
 
+def predict_sentiment_demographic(
+    campaign_id: int,
+    gender: str = "unknown",
+    age_range: str = "unknown", 
+    education_level: str = "unknown",
+    country: str = "unknown",
+    state: str = "unknown",
+    detected_language: str = "pt"
+) -> Dict:
+    """
+    Predict sentiment using the realistic demographic-based model
+    
+    Args:
+        campaign_id: The campaign ID
+        gender: User gender
+        age_range: User age range
+        education_level: User education level
+        country: User country
+        state: User state
+        detected_language: Detected language of the message
+    
+    Returns:
+        Dict with prediction results and confidence
+    """
+    if not _load_realistic_model():
+        return {"error": "realistic_model_not_available"}
+    
+    try:
+        # Prepare feature dictionary based on the advanced model features
+        feature_dict = {}
+        
+        # Basic features
+        feature_dict['campaign_id'] = campaign_id
+        
+        # Encode categorical features
+        if 'gender' in _encoders:
+            try:
+                feature_dict['gender'] = _encoders['gender'].transform([gender])[0]
+            except (ValueError, AttributeError):
+                feature_dict['gender'] = 0  # Unknown category
+        
+        if 'age_range' in _encoders:
+            try:
+                feature_dict['age_range'] = _encoders['age_range'].transform([age_range])[0]
+            except (ValueError, AttributeError):
+                feature_dict['age_range'] = 0
+        
+        if 'education_level' in _encoders:
+            try:
+                feature_dict['education_level'] = _encoders['education_level'].transform([education_level])[0]
+            except (ValueError, AttributeError):
+                feature_dict['education_level'] = 0
+                
+        if 'country' in _encoders:
+            try:
+                feature_dict['country'] = _encoders['country'].transform([country])[0]
+            except (ValueError, AttributeError):
+                feature_dict['country'] = 0
+                
+        if 'state' in _encoders:
+            try:
+                feature_dict['state'] = _encoders['state'].transform([state])[0]
+            except (ValueError, AttributeError):
+                feature_dict['state'] = 0
+        
+        if 'detected_language' in _encoders:
+            try:
+                feature_dict['detected_language_encoded'] = _encoders['detected_language'].transform([detected_language])[0]
+            except (ValueError, AttributeError):
+                feature_dict['detected_language_encoded'] = 0
+        
+        # Calculate advanced features (similar to train_realistic_model.py)
+        # Age-Education interaction
+        age_val = feature_dict.get('age_range', 0)
+        edu_val = feature_dict.get('education_level', 0)
+        gender_val = feature_dict.get('gender', 0)
+        feature_dict['age_education'] = age_val * 10 + edu_val
+        
+        # Higher education flag
+        feature_dict['is_higher_edu'] = 1 if education_level.lower() in ['bachelor', 'master', 'phd'] else 0
+        
+        # Campaign encoded
+        feature_dict['campaign_id_encoded'] = campaign_id % 100  # Simple encoding
+        
+        # Complex interactions (simplified versions)
+        feature_dict['age_edu_gender'] = age_val * 100 + edu_val * 10 + gender_val
+        feature_dict['demographic_profile'] = hash(f"{gender}_{age_range}_{education_level}") % 1000
+        feature_dict['campaign_cultural_fit'] = campaign_id * feature_dict.get('country', 0) % 100
+        
+        # Additional missing features
+        feature_dict['cultural_context'] = feature_dict.get('country', 0) * feature_dict.get('detected_language_encoded', 0)
+        feature_dict['campaign_age_fit'] = campaign_id * age_val % 50
+        feature_dict['campaign_edu_fit'] = campaign_id * edu_val % 50
+        feature_dict['campaign_gender_fit'] = campaign_id * gender_val % 50
+        
+        # Trend features (simplified - in real implementation these would come from database)
+        feature_dict['education_level_group_trend'] = 0.5  # Neutral trend
+        feature_dict['country_group_trend'] = 0.5  # Neutral trend
+        feature_dict['age_range_group_trend'] = 0.5  # Neutral trend
+        feature_dict['edu_lang_sophistication'] = edu_val * feature_dict.get('detected_language_encoded', 0)
+        feature_dict['edu_cultural_level'] = edu_val * feature_dict.get('country', 0)
+        
+        # Build feature vector in the correct order
+        feature_vector = []
+        missing_features = []
+        
+        for feature_name in _feature_columns:
+            if feature_name in feature_dict:
+                feature_vector.append(feature_dict[feature_name])
+            else:
+                feature_vector.append(0)  # Default value for missing features
+                missing_features.append(feature_name)
+        
+        if missing_features:
+            print(f"Warning: Missing features filled with defaults: {missing_features}")
+        
+        # Convert to numpy array for prediction
+        X = np.array([feature_vector])
+        
+        # Make prediction
+        prediction = _model.predict(X)[0]
+        probabilities = _model.predict_proba(X)[0]
+        
+        # Decode prediction
+        if 'sentiment_category' in _encoders:
+            predicted_category = _encoders['sentiment_category'].inverse_transform([prediction])[0]
+            class_names = _encoders['sentiment_category'].classes_
+        else:
+            predicted_category = f"class_{prediction}"
+            class_names = [f"class_{i}" for i in range(len(probabilities))]
+        
+        # Build probability dictionary
+        prob_dict = {class_names[i]: float(prob) for i, prob in enumerate(probabilities)}
+        confidence = float(max(probabilities))
+        
+        # Get model performance info
+        model_accuracy = _model_stats.get('test_accuracy', 0.0)
+        baseline_accuracy = _model_stats.get('baseline_accuracy', 0.33)
+        
+        return {
+            "predicted_category": predicted_category,
+            "confidence": confidence,
+            "probabilities": prob_dict,
+            "demographic_features": {
+                "campaign_id": campaign_id,
+                "gender": gender,
+                "age_range": age_range,
+                "education_level": education_level,
+                "country": country,
+                "state": state,
+                "detected_language": detected_language,
+                "is_higher_edu": feature_dict.get('is_higher_edu', 0)
+            },
+            "model_info": {
+                "model_type": _model_stats.get('best_model_type', 'demographic'),
+                "model_accuracy": round(model_accuracy, 3),
+                "baseline_accuracy": round(baseline_accuracy, 3),
+                "improvement_over_baseline": round(model_accuracy - baseline_accuracy, 3),
+                "features_used": len(_feature_columns),
+                "most_important_features": _model_stats.get('feature_importance', [])[:5] if _model_stats.get('feature_importance') else []
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error in demographic sentiment prediction: {e}")
+        return {"error": "prediction_failed", "details": str(e)}
+
 def get_model_performance() -> Dict:
     """Get detailed information about the realistic model's performance"""
     if not _load_realistic_model():

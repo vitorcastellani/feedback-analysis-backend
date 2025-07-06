@@ -4,14 +4,14 @@ import joblib
 import pandas as pd
 import numpy as np
 from unittest.mock import patch, MagicMock
-from utils.realistic_model import (
+from utils.demographic_model import (
     _load_realistic_model, 
     predict_sentiment,
     get_model_performance,
     realistic_model_exists,
     compare_with_vader
 )
-from ml_training.train_realistic_model import train_realistic_models
+from ml_training.train_demographic_model import train_realistic_models
 
 
 class TestRealisticModel:
@@ -20,7 +20,7 @@ class TestRealisticModel:
     @pytest.fixture(autouse=True)
     def setup_method(self):
         """Setup for each test method."""
-        import utils.realistic_model as rm
+        import utils.demographic_model as rm
         rm._model = None
         rm._feature_columns = None
         rm._encoders = {}
@@ -235,7 +235,7 @@ class TestRealisticModel:
             "state": ["SP", "RJ", "MG"]
         }
         
-        from utils.realistic_model import _encoders
+        from utils.demographic_model import _encoders
         
         for encoder_name, values in test_values.items():
             if encoder_name in _encoders:
@@ -300,7 +300,10 @@ class TestRealisticModel:
         if not os.path.exists("ml_models/sentiment_classifier.joblib"):
             pytest.skip("Model files not available - run training first")
         
-        import psutil
+        try:
+            import psutil
+        except ImportError:
+            pytest.skip("psutil not available - install with: pip install psutil")
         
         process = psutil.Process(os.getpid())
         memory_before = process.memory_info().rss

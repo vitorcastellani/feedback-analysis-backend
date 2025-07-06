@@ -275,18 +275,17 @@ def get_component_data(path: DashboardComponentIDParam):
                 "state": Feedback.state,
                 "sentiment": FeedbackAnalysis.sentiment,
                 "word_count": FeedbackAnalysis.word_count,
-                "feedback_length": FeedbackAnalysis.feedback_length
+                "feedback_length": FeedbackAnalysis.feedback_length,
+                "star_rating": FeedbackAnalysis.star_rating
             }
             
             x_field = field_mapping.get(x_axis, FeedbackAnalysis.sentiment_category)
             
             if y_axis == "count":
                 y_expression = func.count().label('value')
-            elif y_axis == "avg_sentiment":
-                y_expression = func.avg(FeedbackAnalysis.sentiment).label('value')
             elif y_axis in field_mapping:
                 y_field = field_mapping[y_axis]
-                if y_axis in ["sentiment", "word_count", "feedback_length"]:
+                if y_axis in ["sentiment", "word_count", "feedback_length", "star_rating"]:
                     y_expression = func.avg(y_field).label('value')
                 else:
                     y_expression = func.count().label('value')
@@ -296,7 +295,7 @@ def get_component_data(path: DashboardComponentIDParam):
             chart_data = db.query(
                 x_field.label('label'),
                 y_expression
-            ).join(
+            ).select_from(FeedbackAnalysis).join(
                 Feedback, FeedbackAnalysis.feedback_id == Feedback.id
             ).filter(
                 Feedback.campaign_id.in_(campaign_ids)
@@ -381,7 +380,7 @@ def get_component_data(path: DashboardComponentIDParam):
                         else_=0
                     )
                 ).label('negative_count')
-            ).join(
+            ).select_from(FeedbackAnalysis).join(
                 Feedback, FeedbackAnalysis.feedback_id == Feedback.id
             ).filter(
                 Feedback.campaign_id.in_(campaign_ids)
@@ -395,13 +394,27 @@ def get_component_data(path: DashboardComponentIDParam):
                 labels = [row.date for row in trend_data]
                 sentiment_scores = [float(row.avg_sentiment) for row in trend_data]
                 
+                raw_satisfaction = [
+                    (row.positive_count / row.total_feedbacks) * 100
+                    if row.total_feedbacks > 0
+                    else 0.0
+                    for row in trend_data
+                ]
+                
                 satisfaction_trend = []
-                for row in trend_data:
-                    if row.total_feedbacks and row.total_feedbacks > 0:
-                        satisfaction_rate = (row.positive_count / row.total_feedbacks) * 100
-                        satisfaction_trend.append(round(satisfaction_rate, 2))
+                alpha = 0.3
+                
+                for i, current_value in enumerate(raw_satisfaction):
+                    if i == 0:
+                        satisfaction_trend.append(round(current_value, 2))
                     else:
-                        satisfaction_trend.append(0)
+                        ema = alpha * current_value + (1 - alpha) * satisfaction_trend[i-1]
+                        
+                        sample_weight = min(trend_data[i].total_feedbacks / 10, 1.0)
+                        adjusted_alpha = alpha * sample_weight + (1 - sample_weight) * 0.1
+                        
+                        ema = adjusted_alpha * current_value + (1 - adjusted_alpha) * satisfaction_trend[i-1]
+                        satisfaction_trend.append(round(ema, 2))
 
                 data_payload = {
                     "labels": labels,
